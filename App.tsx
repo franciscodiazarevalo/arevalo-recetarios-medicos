@@ -17,15 +17,22 @@ const App: React.FC = () => {
   const currentUser = { id: '1', name: 'Admin Arévalo', role: 'ADMIN' };
 
   useEffect(() => {
-    const loadFromSheets = async () => {
+    const loadData = async () => {
       try {
         const url = import.meta.env.VITE_API_URL;
-        if (!url) { setLoading(false); return; }
+        if (!url) return;
         const response = await fetch(url);
         const data = await response.json();
         
         if (Array.isArray(data)) {
-          setDoctors(data); // El script ya manda los números limpios
+          // Aseguramos que CADA dato sea un número válido antes de guardarlo
+          const safeData = data.map((d: any) => ({
+            ...d,
+            stock_pb: Number(d.stock_pb) || 0,
+            stock_deposito: Number(d.stock_deposito) || 0,
+            min_pb: Number(d.min_pb) || 0
+          }));
+          setDoctors(safeData);
         }
         setLoading(false);
       } catch (e) {
@@ -33,13 +40,11 @@ const App: React.FC = () => {
         setLoading(false);
       }
     };
-    loadFromSheets();
+    loadData();
   }, []);
 
-  // CÁLCULO DE TOTALES: Si la lista está vacía, devuelve 0. Nunca NaN.
+  // CÁLCULO DE TOTALES BLINDADO
   const stats = useMemo(() => {
-    if (!doctors.length) return { totalPB: 0, totalDep: 0, alerts: 0 };
-    
     const totalPB = doctors.reduce((acc, d) => acc + (Number(d.stock_pb) || 0), 0);
     const totalDep = doctors.reduce((acc, d) => acc + (Number(d.stock_deposito) || 0), 0);
     const alerts = doctors.filter(d => (Number(d.stock_pb) || 0) < (Number(d.min_pb) || 0)).length;
@@ -48,8 +53,8 @@ const App: React.FC = () => {
   }, [doctors]);
 
   if (loading) return (
-    <div className="flex h-screen items-center justify-center bg-slate-900 text-white font-sans text-xl font-bold">
-      Sincronizando Stock Arévalo...
+    <div className="flex h-screen items-center justify-center bg-slate-900 text-white font-sans">
+      <div className="text-xl animate-pulse font-bold">Sincronizando Sistema Arévalo...</div>
     </div>
   );
 
