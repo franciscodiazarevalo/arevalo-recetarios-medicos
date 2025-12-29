@@ -4,10 +4,9 @@ import App from './App';
 import './index.css';
 
 const rootElement = document.getElementById('root');
-if (!rootElement) throw new Error('Failed to find the root element');
+if (!rootElement) throw new Error('No se encontró el elemento root');
 
-const root = ReactDOM.createRoot(rootElement);
-root.render(
+ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>
