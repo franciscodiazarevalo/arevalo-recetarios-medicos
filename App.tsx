@@ -12,71 +12,75 @@ const App: React.FC = () => {
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Usuario administrador para que ningún componente falle al leer 'role'
-  const adminUser = { 
+  // Usuario con todos los permisos para habilitar el menú completo
+  const fullUser = { 
     id: '1', 
     name: 'Admin Arévalo', 
-    role: 'admin' 
+    role: 'admin',
+    email: 'admin@arevalo.com'
   };
 
   useEffect(() => {
-    const fetchSheetData = async () => {
+    const loadData = async () => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL;
-        if (!apiUrl) return;
-        const res = await fetch(apiUrl);
-        const data = await res.json();
+        const url = import.meta.env.VITE_API_URL;
+        if (!url) return;
+        const response = await fetch(url);
+        const data = await response.json();
+        
         if (Array.isArray(data)) {
-          setDoctors(data.map((d: any) => ({
+          const mapped = data.map((d: any) => ({
             id: String(d.id || Math.random()),
             name: d.nombre || 'Sin nombre',
             specialty: d.especialidad || 'General',
-            stock_pb: parseInt(d.stock_pb_actual) || 0,
-            stock_deposito: parseInt(d.stock_deposito_actual) || 0,
-            min_pb: 2,
-            ideal_pb: 5
-          })));
+            // Buscamos los nombres exactos de tus columnas en minúsculas
+            stock_pb: Number(d.stock_pb_actual) || 0,
+            stock_deposito: Number(d.stock_deposito_actual) || 0,
+            min_pb: Number(d.min_pb) || 2,
+            ideal_pb: Number(d.ideal_pb) || 5,
+            min_deposito: Number(d.min_deposito) || 5,
+            ideal_deposito: Number(d.ideal_deposito) || 20
+          }));
+          setDoctors(mapped);
         }
         setLoading(false);
-      } catch (err) {
-        console.error("Error:", err);
+      } catch (e) {
+        console.error("Error de conexión:", e);
         setLoading(false);
       }
     };
-    fetchSheetData();
+    loadData();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-slate-900 text-white font-sans">
-        <div className="text-center animate-pulse text-xl">
-          Iniciando Sistema Arévalo...
-        </div>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex h-screen items-center justify-center bg-[#0f172a] text-white">
+      <div className="text-center animate-pulse">Sincronizando con Arévalo Stock...</div>
+    </div>
+  );
 
-  // Preparamos los datos para que todos los componentes los reciban igual
-  const commonProps = {
-    user: adminUser,
-    currentUser: adminUser, // Por si el componente busca 'currentUser'
-    onNavigate: setActivePage,
-    setActivePage: setActivePage,
+  // Propiedades que el Sidebar y Dashboard necesitan para mostrarse bien
+  const appProps = {
+    user: fullUser,
+    currentUser: fullUser,
     activePage: activePage,
+    setActivePage: setActivePage,
+    onNavigate: setActivePage, // Algunos componentes usan este nombre
     doctors: doctors,
+    setDoctors: setDoctors,
+    logs: [],
     recentLogs: []
   };
 
   return (
-    <div className="flex h-screen bg-gray-100 font-sans overflow-hidden">
-      <Sidebar {...commonProps} />
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      <Sidebar {...appProps} />
       <main className="flex-1 overflow-y-auto">
-        {activePage === 'dashboard' && <Dashboard {...commonProps} />}
-        {activePage === 'distribution' && <Distribution {...commonProps} />}
-        {activePage === 'movements' && <Movements {...commonProps} />}
-        {activePage === 'orders' && <Orders {...commonProps} />}
-        {activePage === 'stats' && <Stats {...commonProps} />}
-        {activePage === 'admin' && <AdminPanel {...commonProps} />}
+        {activePage === 'dashboard' && <Dashboard {...appProps} />}
+        {activePage === 'distribution' && <Distribution {...appProps} />}
+        {activePage === 'movements' && <Movements {...appProps} />}
+        {activePage === 'orders' && <Orders {...appProps} />}
+        {activePage === 'stats' && <Stats {...appProps} />}
+        {activePage === 'admin' && <AdminPanel {...appProps} />}
       </main>
     </div>
   );
