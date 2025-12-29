@@ -11,47 +11,60 @@ const App: React.FC = () => {
   const [activePage, setActivePage] = useState('dashboard');
   const [doctors, setDoctors] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   
   const currentUser = { id: '1', name: 'Admin Arévalo', role: 'ADMIN' };
 
   useEffect(() => {
-    const fetchData = async () => {
+    const loadData = async () => {
       try {
-        const url = import.meta.env.VITE_API_URL;
-        if (!url) return;
+        // USAMOS TU LINK DIRECTO PARA EVITAR ERRORES
+        const url = "https://script.google.com/macros/s/AKfycbywESXcQnvwGa9VSIIweljqUE9E9HnVMLnb9teY2yRebXFXC2R11YZ5a0Z17gPZ59rbjg/exec";
+        
         const response = await fetch(url);
         const data = await response.json();
+        
         if (Array.isArray(data)) {
-          setDoctors(data);
+          const mapped = data.map((d: any) => ({
+            id: String(d.id || Math.random()),
+            name: String(d.nombre || 'Sin nombre'),
+            specialty: String(d.especialidad || 'General'),
+            // Corregimos los nombres según el JSON de tu captura
+            stock_pb: Number(d.stock_pb) || 0,
+            stock_deposito: Number(d.stock_dep) || 0, // 'stock_dep' viene del Excel
+            min_pb: Number(d.min_pb) || 0,
+            ideal_pb: Number(d.ideal_pb) || 0
+          }));
+          setDoctors(mapped);
         }
         setLoading(false);
       } catch (e) {
-        console.error("Error:", e);
+        console.error("Error cargando datos:", e);
         setLoading(false);
       }
     };
-    fetchData();
+    loadData();
   }, []);
 
-  // CÁLCULO DE TOTALES BLINDADO: Si no hay datos, muestra 0, nunca NaN
+  // Calculamos los totales para el Dashboard
   const stats = useMemo(() => {
-    const totalPB = doctors.reduce((acc, d) => acc + (Number(d.stock_pb) || 0), 0);
-    const totalDep = doctors.reduce((acc, d) => acc + (Number(d.stock_dep) || 0), 0);
-    const alerts = doctors.filter(d => (Number(d.stock_pb) || 0) < (Number(d.min_pb) || 0)).length;
+    const totalPB = doctors.reduce((acc, d) => acc + (d.stock_pb || 0), 0);
+    const totalDep = doctors.reduce((acc, d) => acc + (d.stock_deposito || 0), 0);
+    const alerts = doctors.filter(d => d.stock_pb < d.min_pb).length;
     return { totalPB, totalDep, alerts };
   }, [doctors]);
 
   if (loading) return (
-    <div className="flex h-screen items-center justify-center bg-slate-900 text-white font-sans text-xl">
-      Sincronizando Sistema Arévalo...
+    <div className="flex h-screen items-center justify-center bg-[#0f172a] text-white font-sans font-bold">
+      <div className="text-center animate-pulse">Sincronizando Sistema Arévalo...</div>
     </div>
   );
 
   const sharedProps = {
     currentUser, activePage, onNavigate: setActivePage, setActivePage,
-    doctors, setDoctors, orders, setOrders, stats,
-    logs: [], recentLogs: []
+    doctors, setDoctors, orders, setOrders, logs, setLogs,
+    recentLogs: logs.slice(0, 5), stats
   };
 
   return (
