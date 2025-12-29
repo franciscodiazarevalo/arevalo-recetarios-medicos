@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { Distribution } from './components/Distribution';
@@ -10,19 +10,20 @@ import { AdminPanel } from './components/AdminPanel';
 const App: React.FC = () => {
   const [activePage, setActivePage] = useState('dashboard');
   const [doctors, setDoctors] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Enviamos 'ADMIN' en mayúsculas para que el Sidebar lo reconozca
-  const adminUser = { 
-    name: 'Admin Arévalo', 
-    role: 'ADMIN' 
-  };
+  const currentUser = { id: '1', name: 'Admin Arévalo', role: 'ADMIN' };
 
   useEffect(() => {
-    const fetchData = async () => {
+    const loadFromSheets = async () => {
       try {
         const url = import.meta.env.VITE_API_URL;
-        if (!url) return;
+        if (!url) {
+          setLoading(false);
+          return;
+        }
         const response = await fetch(url);
         const data = await response.json();
         
@@ -31,7 +32,6 @@ const App: React.FC = () => {
             id: String(d.id || Math.random()),
             name: String(d.nombre || 'Sin nombre'),
             specialty: String(d.especialidad || 'General'),
-            // Limpiamos los datos para evitar el NaN
             stock_pb: parseInt(d.stock_pb_actual) || 0,
             stock_deposito: parseInt(d.stock_deposito_actual) || 0,
             min_pb: parseInt(d.min_pb) || 0,
@@ -43,41 +43,52 @@ const App: React.FC = () => {
         }
         setLoading(false);
       } catch (e) {
-        console.error("Error:", e);
+        console.error("Error cargando datos:", e);
         setLoading(false);
       }
     };
-    fetchData();
+    loadFromSheets();
   }, []);
 
+  const stats = useMemo(() => {
+    return {
+      totalPB: doctors.reduce((acc, d) => acc + d.stock_pb, 0),
+      totalDep: doctors.reduce((acc, d) => acc + d.stock_deposito, 0),
+      alerts: doctors.filter(d => d.stock_pb < d.min_pb).length
+    };
+  }, [doctors]);
+
   if (loading) return (
-    <div className="flex h-screen items-center justify-center bg-slate-900 text-white">
-      <div className="text-center animate-pulse">Sincronizando Sistema Arévalo...</div>
+    <div className="flex h-screen items-center justify-center bg-[#0f172a] text-white">
+      <div className="text-center animate-bounce text-xl font-bold">Cargando Arévalo Stock...</div>
     </div>
   );
 
-  // Propiedades unificadas para todos los componentes
-  const props = {
+  const sharedProps = {
+    currentUser,
     activePage,
     onNavigate: setActivePage,
-    currentUser: adminUser,
+    setActivePage,
     doctors,
     setDoctors,
-    logs: [],
-    recentLogs: [],
-    onLogout: () => console.log('Sesión cerrada')
+    orders,
+    setOrders,
+    logs,
+    setLogs,
+    recentLogs: logs.slice(0, 5),
+    stats
   };
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
-      <Sidebar {...props} />
+      <Sidebar {...sharedProps} onLogout={() => window.location.reload()} />
       <main className="flex-1 md:ml-64 overflow-y-auto">
-        {activePage === 'dashboard' && <Dashboard {...props} />}
-        {activePage === 'distribution' && <Distribution {...props} />}
-        {activePage === 'movements' && <Movements {...props} />}
-        {activePage === 'orders' && <Orders {...props} />}
-        {activePage === 'stats' && <Stats {...props} />}
-        {activePage === 'admin' && <AdminPanel {...props} />}
+        {activePage === 'dashboard' && <Dashboard {...sharedProps} />}
+        {activePage === 'distribution' && <Distribution {...sharedProps} />}
+        {activePage === 'movements' && <Movements {...sharedProps} />}
+        {activePage === 'orders' && <Orders {...sharedProps} />}
+        {activePage === 'stats' && <Stats {...sharedProps} />}
+        {activePage === 'admin' && <AdminPanel {...sharedProps} />}
       </main>
     </div>
   );
