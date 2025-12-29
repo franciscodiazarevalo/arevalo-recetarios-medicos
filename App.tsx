@@ -11,19 +11,17 @@ const App: React.FC = () => {
   const [activePage, setActivePage] = useState('dashboard');
   const [doctors, setDoctors] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   
   const currentUser = { id: '1', name: 'Admin Arévalo', role: 'ADMIN' };
 
   useEffect(() => {
-    const loadFromSheets = async () => {
+    const fetchData = async () => {
       try {
         const url = import.meta.env.VITE_API_URL;
-        if (!url) { setLoading(false); return; }
+        if (!url) return;
         const response = await fetch(url);
         const data = await response.json();
-        
         if (Array.isArray(data)) {
           setDoctors(data);
         }
@@ -33,27 +31,27 @@ const App: React.FC = () => {
         setLoading(false);
       }
     };
-    loadFromSheets();
+    fetchData();
   }, []);
 
-  // CÁLCULO DE TOTALES BLINDADO
+  // CÁLCULO DE TOTALES BLINDADO: Si no hay datos, muestra 0, nunca NaN
   const stats = useMemo(() => {
     const totalPB = doctors.reduce((acc, d) => acc + (Number(d.stock_pb) || 0), 0);
-    const totalDep = doctors.reduce((acc, d) => acc + (Number(d.stock_deposito) || 0), 0);
+    const totalDep = doctors.reduce((acc, d) => acc + (Number(d.stock_dep) || 0), 0);
     const alerts = doctors.filter(d => (Number(d.stock_pb) || 0) < (Number(d.min_pb) || 0)).length;
     return { totalPB, totalDep, alerts };
   }, [doctors]);
 
   if (loading) return (
-    <div className="flex h-screen items-center justify-center bg-slate-900 text-white font-sans text-xl font-bold">
+    <div className="flex h-screen items-center justify-center bg-slate-900 text-white font-sans text-xl">
       Sincronizando Sistema Arévalo...
     </div>
   );
 
   const sharedProps = {
     currentUser, activePage, onNavigate: setActivePage, setActivePage,
-    doctors, setDoctors, orders, setOrders, logs, setLogs,
-    recentLogs: logs.slice(0, 5), stats
+    doctors, setDoctors, orders, setOrders, stats,
+    logs: [], recentLogs: []
   };
 
   return (
