@@ -25,12 +25,7 @@ const App: React.FC = () => {
         const data = await response.json();
         
         if (Array.isArray(data)) {
-          setDoctors(data.map((d: any) => ({
-            ...d,
-            stock_pb: Number(d.stock_pb) || 0,
-            stock_deposito: Number(d.stock_deposito) || 0,
-            min_pb: Number(d.min_pb) || 0
-          })));
+          setDoctors(data); // El script ya manda los números limpios
         }
         setLoading(false);
       } catch (e) {
@@ -41,17 +36,20 @@ const App: React.FC = () => {
     loadFromSheets();
   }, []);
 
-  // CÁLCULO DE TOTALES BLINDADO: Nunca más verás un NaN
+  // CÁLCULO DE TOTALES: Si la lista está vacía, devuelve 0. Nunca NaN.
   const stats = useMemo(() => {
+    if (!doctors.length) return { totalPB: 0, totalDep: 0, alerts: 0 };
+    
     const totalPB = doctors.reduce((acc, d) => acc + (Number(d.stock_pb) || 0), 0);
     const totalDep = doctors.reduce((acc, d) => acc + (Number(d.stock_deposito) || 0), 0);
     const alerts = doctors.filter(d => (Number(d.stock_pb) || 0) < (Number(d.min_pb) || 0)).length;
+    
     return { totalPB, totalDep, alerts };
   }, [doctors]);
 
   if (loading) return (
-    <div className="flex h-screen items-center justify-center bg-slate-900 text-white font-sans">
-      <div className="text-xl animate-pulse font-bold">Iniciando Arévalo Stock...</div>
+    <div className="flex h-screen items-center justify-center bg-slate-900 text-white font-sans text-xl font-bold">
+      Sincronizando Stock Arévalo...
     </div>
   );
 
