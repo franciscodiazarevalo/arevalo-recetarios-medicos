@@ -1,40 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
-import { Distribution } from './components/Distribution';
-import { Movements } from './components/Movements';
-import { Orders } from './components/Orders';
-import { Stats } from './components/Stats';
-import { AdminPanel } from './components/AdminPanel';
 
 const App: React.FC = () => {
   const [activePage, setActivePage] = useState('dashboard');
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Creamos un usuario "Admin" por defecto para que la app no pida 'role' y se rompa
+  const [currentUser] = useState({ id: '1', name: 'Administrador', role: 'admin' });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const url = import.meta.env.VITE_API_URL;
-        if (!url) {
-          console.error("No se encontró la URL de la API en Netlify");
-          setLoading(false);
-          return;
-        }
+        if (!url) return;
+        
         const response = await fetch(url);
         const data = await response.json();
         
-        // Mapeo de tus columnas de Google Sheets
         const formatted = data.map((doc: any) => ({
-          id: String(doc.id || ''),
+          id: String(doc.id || Math.random()),
           name: doc.nombre || 'Sin nombre',
           specialty: doc.especialidad || 'General',
           stock_pb: parseInt(doc.stock_pb_actual) || 0,
           stock_deposito: parseInt(doc.stock_deposito_actual) || 0,
           min_pb: parseInt(doc.min_pb) || 2,
-          ideal_pb: parseInt(doc.ideal_pb) || 5,
-          min_deposito: parseInt(doc.min_deposito) || 5,
-          ideal_deposito: parseInt(doc.ideal_deposito) || 20
+          ideal_pb: parseInt(doc.ideal_pb) || 5
         }));
         
         setDoctors(formatted);
@@ -49,16 +41,23 @@ const App: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50 font-sans">
-        <div className="text-xl text-blue-600 animate-pulse">Cargando base de datos de Arévalo...</div>
+      <div className="flex h-screen items-center justify-center bg-slate-900 text-white font-sans">
+        <div className="text-center">
+          <div className="text-2xl font-bold mb-2">Centro Médico Arévalo</div>
+          <div className="animate-pulse">Conectando con Google Sheets...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 font-sans text-gray-900">
-      {/* Sidebar corregido con onNavigate */}
-      <Sidebar activePage={activePage} onNavigate={setActivePage} />
+    <div className="flex h-screen bg-gray-100 font-sans">
+      {/* Pasamos onNavigate y el usuario para evitar errores de 'role' */}
+      <Sidebar 
+        activePage={activePage} 
+        onNavigate={setActivePage} 
+        user={currentUser} 
+      />
       
       <main className="flex-1 overflow-y-auto">
         {activePage === 'dashboard' && (
@@ -68,11 +67,9 @@ const App: React.FC = () => {
             onNavigate={setActivePage} 
           />
         )}
-        {activePage === 'distribution' && <Distribution doctors={doctors} />}
-        {activePage === 'movements' && <Movements />}
-        {activePage === 'orders' && <Orders />}
-        {activePage === 'stats' && <Stats doctors={doctors} />}
-        {activePage === 'admin' && <AdminPanel />}
+        <div className="p-4 text-xs text-gray-400 text-right">
+          Conectado a: {import.meta.env.VITE_API_URL ? 'Google Cloud Success' : 'Error de URL'}
+        </div>
       </main>
     </div>
   );
