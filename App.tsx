@@ -17,44 +17,36 @@ const App: React.FC = () => {
   const currentUser = { id: '1', name: 'Admin Arévalo', role: 'ADMIN' };
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadFromSheets = async () => {
       try {
         const url = import.meta.env.VITE_API_URL;
-        if (!url) return;
+        if (!url) { setLoading(false); return; }
         const response = await fetch(url);
         const data = await response.json();
         
         if (Array.isArray(data)) {
-          // Aseguramos que CADA dato sea un número válido antes de guardarlo
-          const safeData = data.map((d: any) => ({
-            ...d,
-            stock_pb: Number(d.stock_pb) || 0,
-            stock_deposito: Number(d.stock_deposito) || 0,
-            min_pb: Number(d.min_pb) || 0
-          }));
-          setDoctors(safeData);
+          setDoctors(data);
         }
         setLoading(false);
       } catch (e) {
-        console.error("Error:", e);
+        console.error("Error cargando:", e);
         setLoading(false);
       }
     };
-    loadData();
+    loadFromSheets();
   }, []);
 
-  // CÁLCULO DE TOTALES BLINDADO
+  // CÁLCULO DE TOTALES BLINDADO: Si no hay números, devuelve 0, nunca NaN
   const stats = useMemo(() => {
     const totalPB = doctors.reduce((acc, d) => acc + (Number(d.stock_pb) || 0), 0);
     const totalDep = doctors.reduce((acc, d) => acc + (Number(d.stock_deposito) || 0), 0);
     const alerts = doctors.filter(d => (Number(d.stock_pb) || 0) < (Number(d.min_pb) || 0)).length;
-    
     return { totalPB, totalDep, alerts };
   }, [doctors]);
 
   if (loading) return (
-    <div className="flex h-screen items-center justify-center bg-slate-900 text-white font-sans">
-      <div className="text-xl animate-pulse font-bold">Sincronizando Sistema Arévalo...</div>
+    <div className="flex h-screen items-center justify-center bg-slate-900 text-white font-sans text-xl font-bold">
+      Sincronizando Stock Centro Médico Arévalo...
     </div>
   );
 
