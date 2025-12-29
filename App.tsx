@@ -29,14 +29,14 @@ const App: React.FC = () => {
         }
         setLoading(false);
       } catch (e) {
-        console.error("Error cargando:", e);
+        console.error("Error:", e);
         setLoading(false);
       }
     };
     loadFromSheets();
   }, []);
 
-  // CÁLCULO DE TOTALES BLINDADO: Si no hay números, devuelve 0, nunca NaN
+  // CÁLCULO DE TOTALES BLINDADO
   const stats = useMemo(() => {
     const totalPB = doctors.reduce((acc, d) => acc + (Number(d.stock_pb) || 0), 0);
     const totalDep = doctors.reduce((acc, d) => acc + (Number(d.stock_deposito) || 0), 0);
@@ -46,7 +46,7 @@ const App: React.FC = () => {
 
   if (loading) return (
     <div className="flex h-screen items-center justify-center bg-slate-900 text-white font-sans text-xl font-bold">
-      Sincronizando Stock Centro Médico Arévalo...
+      Sincronizando Sistema Arévalo...
     </div>
   );
 
