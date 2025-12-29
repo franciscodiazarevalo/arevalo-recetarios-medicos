@@ -1,40 +1,47 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
+import { Distribution } from './components/Distribution';
+import { Movements } from './components/Movements';
+import { Orders } from './components/Orders';
+import { Stats } from './components/Stats';
+import { AdminPanel } from './components/AdminPanel';
 
 const App: React.FC = () => {
   const [activePage, setActivePage] = useState('dashboard');
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [debugInfo, setDebugInfo] = useState("Iniciando...");
+  
+  const currentUser = { id: '1', name: 'Admin Arévalo', role: 'ADMIN' };
 
   useEffect(() => {
     const loadData = async () => {
       try {
         const url = "https://script.google.com/macros/s/AKfycbywESXcQnvwGa9VSIIweljqUE9E9HnVMLnb9teY2yRebXFXC2R11YZ5a0Z17gPZ59rbjg/exec";
-        setDebugInfo("Llamando a Google...");
-        
         const response = await fetch(url);
         const data = await response.json();
         
-        setDebugInfo(`Recibidos ${data.length} registros. Ejemplo: ${JSON.stringify(data[0])}`);
-
         if (Array.isArray(data)) {
-          // MAPEO AGRESIVO: Le damos TODAS las variantes posibles
-          const mapped = data.map((d: any) => ({
-            ...d,
-            name: d.nombre,
-            stock_pb: Number(d.stock_pb) || 0,
-            stock_pb_actual: Number(d.stock_pb) || 0,
-            stock_deposito: Number(d.stock_dep) || 0,
-            stock_deposito_actual: Number(d.stock_dep) || 0,
-            min_pb: Number(d.min_pb) || 0,
-          }));
+          const mapped = data.map((d: any) => {
+            const pb = Number(d.stock_pb) || 0;
+            const dep = Number(d.stock_dep) || 0;
+            const min = Number(d.min_pb) || 0;
+            return {
+              ...d,
+              id: String(d.id || Math.random()),
+              name: d.nombre,
+              specialty: d.especialidad,
+              // Nombres universales para que el Dashboard no se pierda
+              stock_pb: pb, stock_pb_actual: pb,
+              stock_dep: dep, stock_deposito: dep, stock_deposito_actual: dep,
+              min_pb: min, minPB: min
+            };
+          });
           setDoctors(mapped);
         }
         setLoading(false);
       } catch (e) {
-        setDebugInfo("ERROR: " + e.message);
+        console.error(e);
         setLoading(false);
       }
     };
@@ -42,29 +49,32 @@ const App: React.FC = () => {
   }, []);
 
   const stats = useMemo(() => {
-    const pb = doctors.reduce((acc, d) => acc + (Number(d.stock_pb) || 0), 0);
-    const dep = doctors.reduce((acc, d) => acc + (Number(d.stock_deposito) || 0), 0);
+    const pb = doctors.reduce((acc, d) => acc + (d.stock_pb || 0), 0);
+    const dep = doctors.reduce((acc, d) => acc + (d.stock_dep || 0), 0);
     return { 
-      totalPB: pb, totalPlantaBaja: pb, 
-      totalDep: dep, totalDeposito: dep,
-      alerts: doctors.filter(d => d.stock_pb < d.min_pb).length 
+      totalPB: pb, totalPlantaBaja: pb, total_pb: pb,
+      totalDep: dep, totalDeposito: dep, total_dep: dep,
+      alerts: doctors.filter(d => (d.stock_pb || 0) < (d.min_pb || 0)).length 
     };
   }, [doctors]);
 
-  return (
-    <div className="flex h-screen bg-gray-100 font-sans overflow-hidden">
-      <Sidebar activePage={activePage} onNavigate={setActivePage} currentUser={{name:'Admin', role:'ADMIN'}} />
-      <main className="flex-1 md:ml-64 overflow-y-auto p-4">
-        {/* CAJA DE DIAGNÓSTICO VISUAL */}
-        <div className="bg-black text-green-400 p-4 mb-4 font-mono text-xs rounded-lg shadow-2xl border-2 border-green-900">
-          <p className="">[DIAGNÓSTICO ARÉVALO]</p>
-          <p>Status: {debugInfo}</p>
-          <p>Total PB Calculado: {stats.totalPB}</p>
-        </div>
+  if (loading) return <div className="h-screen flex items-center justify-center bg-slate-900 text-white font-bold">Cargando Arévalo Stock...</div>;
 
-        {activePage === 'dashboard' && (
-          <Dashboard doctors={doctors} stats={stats} currentUser={{role:'ADMIN'}} recentLogs={[]} onNavigate={setActivePage} />
-        )}
+  const sharedProps = {
+    currentUser, activePage, onNavigate: setActivePage, setActivePage,
+    doctors, setDoctors, stats, logs: [], recentLogs: [], orders: [], setOrders: () => {}
+  };
+
+  return (
+    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
+      <Sidebar {...sharedProps} onLogout={() => {}} />
+      <main className="flex-1 md:ml-64 overflow-y-auto">
+        {activePage === 'dashboard' && <Dashboard {...sharedProps} />}
+        {activePage === 'distribution' && <Distribution {...sharedProps} />}
+        {activePage === 'movements' && <Movements {...sharedProps} />}
+        {activePage === 'orders' && <Orders {...sharedProps} />}
+        {activePage === 'stats' && <Stats {...sharedProps} />}
+        {activePage === 'admin' && <AdminPanel {...sharedProps} />}
       </main>
     </div>
   );
