@@ -1,9 +1,54 @@
+
 <!DOCTYPE html>
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Arévalo Stock Manager</title>
+    
+    <!-- Motor de estilos para corregir la Vista Previa -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+      // Configuración de Tailwind para que reconozca los estilos correctamente
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              slate: {
+                900: '#0f172a',
+                950: '#020617',
+              }
+            }
+          }
+        }
+      }
+    </script>
+
+    <style type="text/tailwindcss">
+      @layer base {
+        html, body, #root {
+          height: 100%;
+          margin: 0;
+          padding: 0;
+          background-color: #f3f4f6;
+          font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+      }
+      
+      /* Estilos para la barra de scroll en los cuadros del Dashboard */
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #e2e8f0;
+        border-radius: 10px;
+      }
+    </style>
+
   <script type="importmap">
 {
   "imports": {
