@@ -7,7 +7,7 @@ import { Movements } from './components/Movements';
 import { AdminPanel } from './components/AdminPanel';
 import { Stats } from './components/Stats';
 import { Orders } from './components/Orders';
-import { Loader2, CloudCheck, CloudOff, RefreshCw } from 'lucide-react';
+import { Loader2, CheckCircle2, CloudOff, RefreshCw } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activePage, setActivePage] = useState('dashboard');
@@ -29,7 +29,6 @@ const App: React.FC = () => {
         const cleanData = data.map((d: any) => ({
           ...d,
           id: String(d.id),
-          // Mapeo exacto a tus nombres de la planilla (con _actual)
           stock_pb_actual: Number(d.stock_pb_actual) || 0,
           stock_deposito_actual: Number(d.stock_deposito_actual) || 0,
           min_pb: Number(d.min_pb) || 0,
@@ -182,7 +181,7 @@ const App: React.FC = () => {
           )}
           {lastSync === 'success' && (
             <div className="bg-green-600 text-white shadow-lg px-4 py-2 rounded-full flex items-center gap-2 font-bold text-xs">
-              <CloudCheck size={14} /> ¡Guardado en Excel!
+              <CheckCircle2 size={14} /> ¡Guardado en Excel!
             </div>
           )}
           {lastSync === 'error' && (
