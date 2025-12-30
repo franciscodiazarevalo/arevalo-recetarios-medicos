@@ -7,8 +7,8 @@ export const Dashboard = ({ doctors, stats, onNavigate, onPrepareDraft }: any) =
   const [listType, setListType] = useState<'pb' | 'deposito'>('pb');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const faltantesPB = doctors.filter((d: any) => (d.stock_pb || 0) < (d.min_pb || 0));
-  const faltantesDep = doctors.filter((d: any) => (d.stock_deposito || 0) < (d.min_deposito || 0));
+  const faltantesPB = doctors.filter((d: any) => (d.stock_pb_actual || 0) < (d.min_pb || 0));
+  const faltantesDep = doctors.filter((d: any) => (d.stock_deposito_actual || 0) < (d.min_deposito || 0));
 
   const handleShowList = (type: 'pb' | 'deposito') => {
     setListType(type);
@@ -16,13 +16,11 @@ export const Dashboard = ({ doctors, stats, onNavigate, onPrepareDraft }: any) =
   };
 
   const handleCreateDraftMovements = () => {
-    // Tomamos TODOS los médicos que están por debajo del mínimo en PB
     const suggestedMovements = faltantesPB.map((d: any) => {
-      // Calculamos cuánto le falta para llegar a su stock IDEAL
-      const quantityNeeded = Math.max(0, (d.ideal_pb || 0) - (d.stock_pb || 0));
+      const quantityNeeded = Math.max(0, (d.ideal_pb || 0) - (d.stock_pb_actual || 0));
       return {
         doctorId: d.id,
-        quantity: quantityNeeded || 0 // Si es 0, igual lo mandamos para que el usuario complete
+        quantity: quantityNeeded || 0
       };
     });
 
@@ -35,8 +33,8 @@ export const Dashboard = ({ doctors, stats, onNavigate, onPrepareDraft }: any) =
   };
 
   const filteredDoctors = doctors.filter((d: any) => 
-    d.name.toLowerCase().includes(searchTerm.toLowerCase())
-  ).sort((a: any, b: any) => listType === 'pb' ? a.stock_pb - b.stock_pb : a.stock_deposito - b.stock_deposito);
+    d.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+  ).sort((a: any, b: any) => listType === 'pb' ? a.stock_pb_actual - b.stock_pb_actual : a.stock_deposito_actual - b.stock_deposito_actual);
 
   if (view === 'list') {
     return (
@@ -68,14 +66,14 @@ export const Dashboard = ({ doctors, stats, onNavigate, onPrepareDraft }: any) =
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filteredDoctors.map((d: any) => {
-                const stock = listType === 'pb' ? d.stock_pb : d.stock_deposito;
+                const stock = listType === 'pb' ? d.stock_pb_actual : d.stock_deposito_actual;
                 const min = listType === 'pb' ? d.min_pb : d.min_deposito;
                 const isLow = stock < min;
                 return (
                   <tr key={d.id} className="hover:bg-gray-50 transition-colors">
                     <td className="p-4">
-                      <p className="font-bold text-gray-800">{d.name}</p>
-                      <p className="text-xs text-gray-500">{d.specialty}</p>
+                      <p className="font-bold text-gray-800 uppercase">{d.nombre}</p>
+                      <p className="text-xs text-gray-500">{d.especialidad}</p>
                     </td>
                     <td className={`p-4 text-center font-black text-lg ${isLow ? 'text-red-600' : 'text-gray-700'}`}>
                       {stock}
@@ -122,8 +120,8 @@ export const Dashboard = ({ doctors, stats, onNavigate, onPrepareDraft }: any) =
           <div className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
             {faltantesPB.length > 0 ? faltantesPB.map((d: any) => (
               <div key={d.id} className="flex justify-between items-center p-2.5 bg-orange-50 rounded-xl border border-orange-100 text-sm">
-                <span className="font-bold text-gray-700 truncate mr-2">{d.name}</span>
-                <span className="text-orange-700 font-bold px-2 py-0.5 bg-white rounded border border-orange-200 whitespace-nowrap">Stock: {d.stock_pb}</span>
+                <span className="font-bold text-gray-700 truncate mr-2 uppercase">{d.nombre}</span>
+                <span className="text-orange-700 font-bold px-2 py-0.5 bg-white rounded border border-orange-200 whitespace-nowrap">Stock: {d.stock_pb_actual}</span>
               </div>
             )) : (
               <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-50">
@@ -133,7 +131,7 @@ export const Dashboard = ({ doctors, stats, onNavigate, onPrepareDraft }: any) =
             )}
           </div>
           <div className="flex gap-3 mt-4 no-print">
-            <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent("*PEDIDO REPOSICIÓN PB*\n\n" + faltantesPB.map((d:any) => `- ${d.name} (Stock: ${d.stock_pb})`).join('\n'))}`, '_blank')} className="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-[0.98]"><MessageCircle size={16}/> WhatsApp</button>
+            <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent("*PEDIDO REPOSICIÓN PB*\n\n" + faltantesPB.map((d:any) => `- ${d.nombre} (Stock: ${d.stock_pb_actual})`).join('\n'))}`, '_blank')} className="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-[0.98]"><MessageCircle size={16}/> WhatsApp</button>
             <button 
                 onClick={(e) => { e.preventDefault(); handleCreateDraftMovements(); }} 
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-[0.98] shadow-md shadow-blue-100"
@@ -150,8 +148,8 @@ export const Dashboard = ({ doctors, stats, onNavigate, onPrepareDraft }: any) =
           <div className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
             {faltantesDep.length > 0 ? faltantesDep.map((d: any) => (
               <div key={d.id} className="flex justify-between items-center p-2.5 bg-red-50 rounded-xl border border-red-100 text-sm">
-                <span className="font-bold text-gray-700 truncate mr-2">{d.name}</span>
-                <span className="text-red-700 font-bold px-2 py-0.5 bg-white rounded border border-red-200 whitespace-nowrap">Stock: {d.stock_deposito}</span>
+                <span className="font-bold text-gray-700 truncate mr-2 uppercase">{d.nombre}</span>
+                <span className="text-red-700 font-bold px-2 py-0.5 bg-white rounded border border-red-200 whitespace-nowrap">Stock: {d.stock_deposito_actual}</span>
               </div>
             )) : (
               <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-50">
@@ -161,7 +159,7 @@ export const Dashboard = ({ doctors, stats, onNavigate, onPrepareDraft }: any) =
             )}
           </div>
           <div className="flex gap-3 mt-4 no-print">
-            <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent("*PEDIDO IMPRENTA*\n\n" + faltantesDep.map((d:any) => `- ${d.name} (Stock: ${d.stock_deposito})`).join('\n'))}`, '_blank')} className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-[0.98]"><MessageCircle size={16}/> WhatsApp</button>
+            <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent("*PEDIDO IMPRENTA*\n\n" + faltantesDep.map((d:any) => `- ${d.nombre} (Stock: ${d.stock_deposito_actual})`).join('\n'))}`, '_blank')} className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-[0.98]"><MessageCircle size={16}/> WhatsApp</button>
             <button onClick={() => onNavigate('orders')} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all active:scale-[0.98]"><ShoppingCart size={16}/> Órden Compra</button>
           </div>
         </div>

@@ -8,8 +8,8 @@ export const Distribution = ({ doctors, onDistribute }: any) => {
   const [lastDelivered, setLastDelivered] = useState<string | null>(null);
 
   const filteredDoctors = doctors.filter((d: any) =>
-    d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    d.specialty.toLowerCase().includes(searchTerm.toLowerCase())
+    d.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    d.especialidad.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleUpdateQty = (id: string, delta: number) => {
@@ -21,22 +21,14 @@ export const Distribution = ({ doctors, onDistribute }: any) => {
   const confirmDistribution = (doc: any) => {
     const qty = quantities[doc.id] || 1;
     
-    // Verificación de stock antes de entregar
-    if ((doc.stock_pb || 0) < qty) {
-      alert(`Atención: Solo quedan ${doc.stock_pb} recetarios en Planta Baja. No se pueden entregar ${qty}.`);
+    if ((doc.stock_pb_actual || 0) < qty) {
+      alert(`Atención: Solo quedan ${doc.stock_pb_actual} recetarios en Planta Baja. No se pueden entregar ${qty}.`);
       return;
     }
 
-    // Llamada a la función principal del App.tsx
     onDistribute(doc.id, qty);
-    
-    // Feedback visual
-    setLastDelivered(doc.name);
-    
-    // Resetear cantidad local
+    setLastDelivered(doc.nombre);
     setQuantities({ ...quantities, [doc.id]: 1 });
-
-    // Limpiar mensaje después de un tiempo
     setTimeout(() => setLastDelivered(null), 3500);
   };
 
@@ -68,7 +60,7 @@ export const Distribution = ({ doctors, onDistribute }: any) => {
       <div className="grid gap-4">
         {filteredDoctors.length > 0 ? filteredDoctors.map((doc: any) => {
           const qty = quantities[doc.id] || 1;
-          const currentStock = doc.stock_pb || 0;
+          const currentStock = doc.stock_pb_actual || 0;
           const hasStock = currentStock > 0;
 
           return (
@@ -81,8 +73,8 @@ export const Distribution = ({ doctors, onDistribute }: any) => {
                   <UserCheck size={28} />
                 </div>
                 <div>
-                  <h4 className="font-black text-gray-800 uppercase leading-tight">{doc.name}</h4>
-                  <p className="text-sm text-gray-500 font-medium">{doc.specialty}</p>
+                  <h4 className="font-black text-gray-800 uppercase leading-tight">{doc.nombre}</h4>
+                  <p className="text-sm text-gray-500 font-medium">{doc.especialidad}</p>
                   <div className="mt-2 flex items-center gap-2">
                     <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${hasStock ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                       {hasStock ? `Disponible: ${currentStock}` : 'Sin Stock en PB'}
