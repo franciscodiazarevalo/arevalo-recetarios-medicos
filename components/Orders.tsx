@@ -1,12 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, CheckCircle2, Truck, Calendar, Plus, X, Edit3, Search, Printer } from 'lucide-react';
+import { ShoppingCart, CheckCircle2, Truck, Calendar, Plus, X, Edit3, Search, Printer, Trash2, Save } from 'lucide-react';
 
 export const Orders = ({ doctors, onReceiveOrder, draftOrder = [], onClearOrderDraft }: any) => {
   const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [selectedDocs, setSelectedDocs] = useState<any[]>([]);
   const [modalSearchTerm, setModalSearchTerm] = useState('');
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
+  const [editItems, setEditItems] = useState<any[]>([]);
   
   const [localOrders, setLocalOrders] = useState<any[]>([]);
 
@@ -51,6 +53,24 @@ export const Orders = ({ doctors, onReceiveOrder, draftOrder = [], onClearOrderD
     setShowNewOrder(false);
     setSelectedDocs([]);
     setModalSearchTerm('');
+  };
+
+  const handleStartEditingOrder = (order: any) => {
+    setEditingOrderId(order.id);
+    setEditItems(JSON.parse(JSON.stringify(order.items)));
+  };
+
+  const handleUpdateEditItem = (doctorId: string, newQty: number) => {
+    setEditItems(editItems.map(item => 
+      item.doctorId === doctorId ? { ...item, quantity: Math.max(0, newQty) } : item
+    ));
+  };
+
+  const handleSaveEditedOrder = (orderId: string) => {
+    setLocalOrders(localOrders.map(o => 
+      o.id === orderId ? { ...o, items: editItems.filter(i => i.quantity > 0) } : o
+    ));
+    setEditingOrderId(null);
   };
 
   const handleCompleteOrder = (orderId: string) => {
@@ -111,54 +131,79 @@ export const Orders = ({ doctors, onReceiveOrder, draftOrder = [], onClearOrderD
       </div>
 
       <div className="grid gap-6">
-        {(activeTab === 'pending' ? pendingOrders : completedOrders).map((order) => (
-          <div key={order.id} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-md">
-            <div className="p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="flex items-center gap-5">
-                <div className={`p-4 rounded-2xl shadow-inner ${order.status === 'pending' ? 'bg-orange-50 text-orange-500' : 'bg-green-50 text-green-500'}`}>
-                  {order.status === 'pending' ? <Truck size={32} /> : <CheckCircle2 size={32} />}
-                </div>
-                <div>
-                  <h4 className="font-black text-xl text-gray-800 flex items-center gap-3">
-                    {order.id} 
-                    {order.invoice && <span className="text-[10px] bg-gray-100 text-gray-500 px-3 py-1 rounded-full uppercase tracking-widest">FAC: {order.invoice}</span>}
-                  </h4>
-                  <p className="text-sm text-gray-400 font-bold flex items-center gap-1 mt-1">
-                    <Calendar size={14} /> Emitido: {order.date}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-8">
-                <div className="hidden sm:block text-right">
-                  <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Items</p>
-                  <p className="font-black text-lg text-gray-700">{order.items.length}</p>
-                </div>
-                {order.status === 'pending' ? (
-                  <button 
-                    onClick={() => handleCompleteOrder(order.id)}
-                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-green-100"
-                  >
-                    Confirmar Entrega
-                  </button>
-                ) : (
-                  <div className="flex items-center gap-2 text-green-600 font-black text-xs uppercase tracking-widest bg-green-50 px-4 py-2 rounded-full">
-                    <CheckCircle2 size={16} /> Completado
+        {(activeTab === 'pending' ? pendingOrders : completedOrders).map((order) => {
+          const isEditing = editingOrderId === order.id;
+          return (
+            <div key={order.id} className={`bg-white rounded-3xl border shadow-sm overflow-hidden transition-all ${isEditing ? 'border-blue-500 ring-4 ring-blue-50' : 'border-gray-100 hover:shadow-md'}`}>
+              <div className="p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex items-center gap-5">
+                  <div className={`p-4 rounded-2xl shadow-inner ${order.status === 'pending' ? 'bg-orange-50 text-orange-500' : 'bg-green-50 text-green-500'}`}>
+                    {order.status === 'pending' ? <Truck size={32} /> : <CheckCircle2 size={32} />}
                   </div>
-                )}
+                  <div>
+                    <h4 className="font-black text-xl text-gray-800 flex items-center gap-3">
+                      {order.id} 
+                      {order.invoice && <span className="text-[10px] bg-gray-100 text-gray-500 px-3 py-1 rounded-full uppercase tracking-widest">FAC: {order.invoice}</span>}
+                    </h4>
+                    <p className="text-sm text-gray-400 font-bold flex items-center gap-1 mt-1">
+                      <Calendar size={14} /> Emitido: {order.date}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  {order.status === 'pending' && !isEditing && (
+                    <button 
+                      onClick={() => handleStartEditingOrder(order)}
+                      className="p-3 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                      title="Editar Cantidades"
+                    >
+                      <Edit3 size={20} />
+                    </button>
+                  )}
+                  
+                  {isEditing ? (
+                    <button 
+                      onClick={() => handleSaveEditedOrder(order.id)}
+                      className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2"
+                    >
+                      <Save size={16} /> Guardar Cambios
+                    </button>
+                  ) : order.status === 'pending' ? (
+                    <button 
+                      onClick={() => handleCompleteOrder(order.id)}
+                      className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-green-100"
+                    >
+                      Confirmar Entrega
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2 text-green-600 font-black text-xs uppercase tracking-widest bg-green-50 px-4 py-2 rounded-full">
+                      <CheckCircle2 size={16} /> Completado
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="bg-gray-50/50 p-6 border-t border-gray-50 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(isEditing ? editItems : order.items).map((item:any, idx:number) => (
+                  <div key={idx} className={`flex items-center justify-between bg-white p-4 rounded-2xl border shadow-sm ${isEditing ? 'border-blue-100' : 'border-gray-100'}`}>
+                    <span className="font-black text-gray-700 truncate mr-2 text-[10px] uppercase tracking-tight">{item.nombre}</span>
+                    {isEditing ? (
+                      <input 
+                        type="number"
+                        className="w-16 bg-blue-50 border-none rounded-lg px-2 py-1 text-xs font-black text-blue-700 text-center outline-none focus:ring-2 focus:ring-blue-500"
+                        value={item.quantity}
+                        onChange={(e) => handleUpdateEditItem(item.doctorId, parseInt(e.target.value) || 0)}
+                      />
+                    ) : (
+                      <span className="bg-blue-600 text-white font-black px-3 py-1 rounded-lg text-xs">{item.quantity}</span>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
-            
-            <div className="bg-gray-50/50 p-6 border-t border-gray-50 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {order.items.map((item:any, idx:number) => (
-                <div key={idx} className="flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                  <span className="font-black text-gray-700 truncate mr-2 text-xs uppercase">{item.nombre}</span>
-                  <span className="bg-blue-600 text-white font-black px-3 py-1 rounded-lg text-xs">{item.quantity}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
+          );
+        })}
 
         {(activeTab === 'pending' ? pendingOrders : completedOrders).length === 0 && (
           <div className="text-center py-24 bg-white rounded-3xl border-2 border-dashed border-gray-100">
@@ -168,7 +213,7 @@ export const Orders = ({ doctors, onReceiveOrder, draftOrder = [], onClearOrderD
         )}
       </div>
 
-      {/* Modal Nuevo Pedido Rediseñado con BUSCADOR */}
+      {/* Modal Nuevo Pedido */}
       {showNewOrder && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[200] flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-4xl rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col h-[85vh]">
