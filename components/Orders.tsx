@@ -1,37 +1,34 @@
 
-import React, { useState } from 'react';
-import { ShoppingCart, CheckCircle2, Truck, FileText, Calendar, Plus, Trash2, X, Edit3, Search } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShoppingCart, CheckCircle2, Truck, Calendar, Plus, X, Edit3, Search, Printer } from 'lucide-react';
 
-export const Orders = ({ doctors, onReceiveOrder }: any) => {
+export const Orders = ({ doctors, onReceiveOrder, draftOrder = [], onClearOrderDraft }: any) => {
   const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [selectedDocs, setSelectedDocs] = useState<any[]>([]);
   const [modalSearchTerm, setModalSearchTerm] = useState('');
   
-  const [localOrders, setLocalOrders] = useState<any[]>([
-    {
-      id: 'ORD-9932',
-      date: new Date().toLocaleDateString(),
-      status: 'pending',
-      items: doctors.filter((d:any) => (d.stock_deposito_actual || 0) < (d.min_deposito || 0)).slice(0, 2).map((d:any) => ({ 
-        doctorId: d.id, 
-        nombre: d.nombre, 
-        quantity: Math.max(0, (d.ideal_deposito || 100) - (d.stock_deposito_actual || 0)) || 50
-      }))
+  const [localOrders, setLocalOrders] = useState<any[]>([]);
+
+  // Pre-fill modal if a draft order comes from Dashboard
+  useEffect(() => {
+    if (draftOrder && draftOrder.length > 0) {
+      setSelectedDocs(draftOrder);
+      setShowNewOrder(true);
+      if (onClearOrderDraft) onClearOrderDraft();
     }
-  ]);
+  }, [draftOrder, onClearOrderDraft]);
 
   const handleToggleDoctor = (d: any) => {
     const isSelected = selectedDocs.some(s => s.doctorId === d.id);
     if (isSelected) {
       setSelectedDocs(selectedDocs.filter(s => s.doctorId !== d.id));
     } else {
-      // Cálculo sugerido: Ideal - Actual
       const suggestedQty = Math.max(0, (d.ideal_deposito || 0) - (d.stock_deposito_actual || 0));
       setSelectedDocs([...selectedDocs, { 
         doctorId: d.id, 
         nombre: d.nombre, 
-        quantity: suggestedQty || 100 // Valor por defecto si no hay ideal definido
+        quantity: suggestedQty || 100
       }]);
     }
   };
@@ -84,7 +81,7 @@ export const Orders = ({ doctors, onReceiveOrder }: any) => {
   const completedOrders = localOrders.filter(o => o.status === 'completed');
 
   return (
-    <div className="p-8 max-w-6xl mx-auto animate-in fade-in duration-500">
+    <div className="p-8 max-w-6xl mx-auto animate-in fade-in duration-500 no-print">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-3xl font-black text-gray-900 tracking-tight">Pedidos a Imprenta</h2>

@@ -10,15 +10,11 @@ import { Orders } from './components/Orders';
 import { 
   Loader2, 
   CheckCircle, 
-  CloudOff, 
   RefreshCw, 
   ShieldAlert, 
-  Clock, 
-  Wifi, 
-  Database,
-  AlertTriangle,
   Activity,
-  Heart
+  Heart,
+  Wifi
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -29,6 +25,7 @@ const App: React.FC = () => {
   const [lastSync, setLastSync] = useState<'success' | 'error' | null>(null);
   const [syncTime, setSyncTime] = useState<string>('--:--');
   const [draftTransfers, setDraftTransfers] = useState<any[]>([]);
+  const [draftOrder, setDraftOrder] = useState<any[]>([]);
   const [netPulses, setNetPulses] = useState(0);
   
   const API_URL = "https://script.google.com/macros/s/AKfycbywESXcQnvwGa9VSIIweljqUE9E9HnVMLnb9teY2yRebXFXC2R11YZ5a0Z17gPZ59rbjg/exec";
@@ -93,7 +90,6 @@ const App: React.FC = () => {
     }
   };
 
-  // HANDLERS
   const handleBatchTransfer = (transfers: { doctorId: string; quantity: number }[]) => {
     const newDoctors = doctors.map((doc: any) => {
       const transfer = transfers.find((t) => String(t.doctorId) === String(doc.id));
@@ -171,10 +167,13 @@ const App: React.FC = () => {
     onDistribute: handleDistribute,
     onReceiveOrder: handleReceiveOrder,
     onPrepareDraft: (items: any[]) => { setDraftTransfers(items); setActivePage('movements'); },
+    onPrepareOrder: (items: any[]) => { setDraftOrder(items); setActivePage('orders'); },
     onAddDoctor: (d: any) => { const n = [...doctors, {...d, id: Date.now().toString()}]; setDoctors(n); syncWithSheet(n); },
     onUpdateDoctor: (d: any) => { const n = doctors.map(x => x.id === d.id ? d : x); setDoctors(n); syncWithSheet(n); },
     draftTransfers: draftTransfers,
-    onClearDraft: () => setDraftTransfers([])
+    onClearDraft: () => setDraftTransfers([]),
+    draftOrder: draftOrder,
+    onClearOrderDraft: () => setDraftOrder([])
   };
 
   return (
@@ -199,7 +198,7 @@ const App: React.FC = () => {
         </div>
 
         {/* Toolbar */}
-        <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl px-10 py-8 flex justify-between items-center border-b border-gray-50">
+        <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl px-10 py-8 flex justify-between items-center border-b border-gray-50 no-print">
           <div className="flex items-center gap-4">
              <div className="bg-slate-950 text-white p-3 rounded-2xl shadow-lg shadow-slate-200">
                 <Activity size={22} className={netPulses % 2 === 0 ? 'opacity-100 scale-110 transition-transform' : 'opacity-30 scale-100 transition-transform'} />
@@ -239,7 +238,7 @@ const App: React.FC = () => {
         </div>
 
         {/* Global Footer Monitor */}
-        <div className="fixed bottom-0 right-0 left-0 md:left-64 bg-slate-950 text-white/30 p-4 px-12 flex justify-between items-center z-50 border-t border-white/5">
+        <div className="fixed bottom-0 right-0 left-0 md:left-64 bg-slate-950 text-white/30 p-4 px-12 flex justify-between items-center z-50 border-t border-white/5 no-print">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <Wifi size={12} className="text-blue-500" />
