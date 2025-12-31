@@ -20,25 +20,23 @@ export const Movements = ({ doctors, onBatchTransfer, draftTransfers = [], onCle
 
   const selectedDoctor = doctors.find((d:any) => d.id === selectedDoctorId);
 
-  // Efecto para cargar los datos sugeridos desde el Dashboard
+  // Sincronización con el esquema real de la planilla
   useEffect(() => {
     if (draftTransfers && draftTransfers.length > 0) {
       const mappedItems = draftTransfers.map((t: any) => {
         const doc = doctors.find((d: any) => d.id === t.doctorId);
         return {
           doctorId: t.doctorId,
-          doctorName: doc ? doc.name : 'Profesional',
-          doctorSpecialty: doc ? doc.specialty : '',
-          currentPB: doc ? doc.stock_pb : 0,
-          idealPB: doc ? doc.ideal_pb : 0,
-          currentDepot: doc ? doc.stock_deposito : 0,
+          doctorName: doc ? doc.nombre : 'Profesional',
+          doctorSpecialty: doc ? doc.especialidad : '',
+          currentPB: doc ? (doc.stock_pb_actual || 0) : 0,
+          idealPB: doc ? (doc.ideal_pb || 0) : 0,
+          currentDepot: doc ? (doc.stock_deposito_actual || 0) : 0,
           quantity: t.quantity
         };
       });
       
       setPendingList(mappedItems);
-      
-      // Limpiamos el borrador para que no se duplique al navegar
       if (onClearDraft) onClearDraft();
     }
   }, [draftTransfers, doctors]);
@@ -54,11 +52,11 @@ export const Movements = ({ doctors, onBatchTransfer, draftTransfers = [], onCle
       } else {
         setPendingList([...pendingList, {
           doctorId: selectedDoctor.id,
-          doctorName: selectedDoctor.name,
-          doctorSpecialty: selectedDoctor.specialty,
-          currentPB: selectedDoctor.stock_pb,
-          idealPB: selectedDoctor.ideal_pb,
-          currentDepot: selectedDoctor.stock_deposito,
+          doctorName: selectedDoctor.nombre,
+          doctorSpecialty: selectedDoctor.especialidad,
+          currentPB: (selectedDoctor.stock_pb_actual || 0),
+          idealPB: (selectedDoctor.ideal_pb || 0),
+          currentDepot: (selectedDoctor.stock_deposito_actual || 0),
           quantity: transferQty
         }]);
       }
@@ -97,7 +95,7 @@ export const Movements = ({ doctors, onBatchTransfer, draftTransfers = [], onCle
   };
 
   const filteredDoctors = doctors.filter((doc:any) => 
-    doc.name.toLowerCase().includes(searchTerm.toLowerCase())
+    doc.nombre.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -139,8 +137,8 @@ export const Movements = ({ doctors, onBatchTransfer, draftTransfers = [], onCle
                         onClick={() => { setSelectedDoctorId(doc.id); setSearchTerm(''); }}
                       >
                         <div>
-                            <span className="text-sm font-bold block text-gray-800">{doc.name}</span>
-                            <span className="text-[10px] text-gray-400 font-black uppercase">Depósito: {doc.stock_deposito}</span>
+                            <span className="text-sm font-bold block text-gray-800 uppercase">{doc.nombre}</span>
+                            <span className="text-[10px] text-gray-400 font-black uppercase">Depósito: {doc.stock_deposito_actual}</span>
                         </div>
                       </div>
                     ))
@@ -154,7 +152,7 @@ export const Movements = ({ doctors, onBatchTransfer, draftTransfers = [], onCle
             {selectedDoctor && (
               <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 mb-4 animate-in zoom-in-95">
                 <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-bold text-blue-900 text-xs leading-tight pr-2 uppercase">{selectedDoctor.name}</h3>
+                  <h3 className="font-bold text-blue-900 text-[10px] leading-tight pr-2 uppercase">{selectedDoctor.nombre}</h3>
                   <button onClick={() => setSelectedDoctorId(null)} className="text-[10px] text-blue-400 font-black">X</button>
                 </div>
                 <div className="flex gap-2">
@@ -176,15 +174,6 @@ export const Movements = ({ doctors, onBatchTransfer, draftTransfers = [], onCle
                 </div>
               </div>
             )}
-          </div>
-          
-          <div className="bg-amber-50 p-5 rounded-2xl border border-amber-100">
-              <div className="flex items-start gap-3">
-                  <Info className="text-amber-600 mt-1 shrink-0" size={20} />
-                  <p className="text-xs text-amber-800 font-medium leading-relaxed">
-                      La cantidad sugerida se calcula restando el <b>Stock Actual</b> del <b>Stock Ideal</b> definido en la ficha de cada médico.
-                  </p>
-              </div>
           </div>
         </div>
 
@@ -235,7 +224,7 @@ export const Movements = ({ doctors, onBatchTransfer, draftTransfers = [], onCle
                                               <div className="w-16 h-1.5 bg-gray-100 rounded-full mt-1 overflow-hidden">
                                                   <div 
                                                     className={`h-full ${item.currentPB === 0 ? 'bg-red-500' : 'bg-orange-400'}`} 
-                                                    style={{ width: `${Math.min(100, (item.currentPB / item.idealPB) * 100)}%` }}
+                                                    style={{ width: `${Math.min(100, (item.currentPB / (item.idealPB || 1)) * 100)}%` }}
                                                   ></div>
                                               </div>
                                           </div>

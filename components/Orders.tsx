@@ -7,13 +7,16 @@ export const Orders = ({ doctors, onReceiveOrder }: any) => {
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [selectedDocs, setSelectedDocs] = useState<any[]>([]);
   
-  // En un entorno real, esto vendría de Sheet. Aquí simulamos órdenes locales.
   const [localOrders, setLocalOrders] = useState<any[]>([
     {
-      id: 'ORD-1234',
+      id: 'ORD-PROMO',
       date: new Date().toLocaleDateString(),
       status: 'pending',
-      items: doctors.filter((d:any) => d.stock_deposito < d.min_deposito).map((d:any) => ({ doctorId: d.id, name: d.name, quantity: 100 }))
+      items: doctors.filter((d:any) => (d.stock_deposito_actual || 0) < (d.min_deposito || 0)).slice(0, 3).map((d:any) => ({ 
+        doctorId: d.id, 
+        nombre: d.nombre, 
+        quantity: 100 
+      }))
     }
   ]);
 
@@ -37,99 +40,96 @@ export const Orders = ({ doctors, onReceiveOrder }: any) => {
     const order = localOrders.find(o => o.id === orderId);
     if (!order) return;
 
-    // Actualizamos el stock global a través de la función del App.tsx
     onReceiveOrder(orderId, {
       invoiceNumber: invoiceNum,
       supplier: "Imprenta Central",
       date: new Date().toISOString(),
-      cost: 0,
       items: order.items.map((i:any) => ({ doctorId: i.doctorId, quantity: i.quantity }))
     });
 
-    // Cambiamos estado local
     setLocalOrders(localOrders.map(o => 
       o.id === orderId ? { ...o, status: 'completed', invoice: invoiceNum } : o
     ));
+    alert("Stock ingresado correctamente al depósito.");
   };
 
   const pendingOrders = localOrders.filter(o => o.status === 'pending');
   const completedOrders = localOrders.filter(o => o.status === 'completed');
 
   return (
-    <div className="p-8 space-y-6 animate-in fade-in duration-500">
-      <div className="flex justify-between items-center">
+    <div className="p-8 max-w-6xl mx-auto animate-in fade-in duration-500">
+      <div className="flex justify-between items-center mb-8">
         <div>
-          <h2 className="text-2xl font-black text-gray-800">Gestión de Pedidos</h2>
-          <p className="text-gray-500 text-sm">Controle las órdenes de compra y la entrada de mercadería.</p>
+          <h2 className="text-3xl font-black text-gray-900 tracking-tight">Pedidos a Imprenta</h2>
+          <p className="text-gray-500 font-medium">Controle la reposición de stock en Depósito.</p>
         </div>
         <button 
           onClick={() => setShowNewOrder(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-blue-200"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center gap-3 transition-all active:scale-95 shadow-xl shadow-blue-100"
         >
-          <Plus size={20} /> Nuevo Pedido
+          <Plus size={20} /> Generar Orden
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-gray-100">
+      <div className="flex gap-4 border-b border-gray-100 mb-8 overflow-x-auto no-scrollbar">
         <button 
           onClick={() => setActiveTab('pending')}
-          className={`px-6 py-3 font-bold text-sm transition-all ${activeTab === 'pending' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+          className={`pb-4 px-2 font-black text-xs uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'pending' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
         >
-          Pendientes de Recibir ({pendingOrders.length})
+          Órdenes en Camino ({pendingOrders.length})
         </button>
         <button 
           onClick={() => setActiveTab('completed')}
-          className={`px-6 py-3 font-bold text-sm transition-all ${activeTab === 'completed' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+          className={`pb-4 px-2 font-black text-xs uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'completed' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
         >
-          Historial / Completados
+          Historial de Facturas
         </button>
       </div>
 
       <div className="grid gap-6">
         {(activeTab === 'pending' ? pendingOrders : completedOrders).map((order) => (
-          <div key={order.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-md">
-            <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-xl ${order.status === 'pending' ? 'bg-orange-50 text-orange-500' : 'bg-green-50 text-green-500'}`}>
-                  {order.status === 'pending' ? <Truck size={24} /> : <CheckCircle2 size={24} />}
+          <div key={order.id} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-md">
+            <div className="p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex items-center gap-5">
+                <div className={`p-4 rounded-2xl shadow-inner ${order.status === 'pending' ? 'bg-orange-50 text-orange-500' : 'bg-green-50 text-green-500'}`}>
+                  {order.status === 'pending' ? <Truck size={32} /> : <CheckCircle2 size={32} />}
                 </div>
                 <div>
-                  <h4 className="font-black text-gray-800 flex items-center gap-2">
+                  <h4 className="font-black text-xl text-gray-800 flex items-center gap-3">
                     {order.id} 
-                    {order.invoice && <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded uppercase">Factura: {order.invoice}</span>}
+                    {order.invoice && <span className="text-[10px] bg-gray-100 text-gray-500 px-3 py-1 rounded-full uppercase tracking-widest">FAC: {order.invoice}</span>}
                   </h4>
-                  <p className="text-xs text-gray-400 flex items-center gap-1 font-medium italic">
-                    <Calendar size={12} /> Creado el {order.date}
+                  <p className="text-sm text-gray-400 font-bold flex items-center gap-1 mt-1">
+                    <Calendar size={14} /> Emitido: {order.date}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-6">
-                <div className="text-right">
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Profesionales</p>
-                  <p className="font-bold text-gray-700">{order.items.length}</p>
+              <div className="flex items-center gap-8">
+                <div className="hidden sm:block text-right">
+                  <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Items</p>
+                  <p className="font-black text-lg text-gray-700">{order.items.length}</p>
                 </div>
                 {order.status === 'pending' ? (
                   <button 
                     onClick={() => handleCompleteOrder(order.id)}
-                    className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-all active:scale-95 shadow-md shadow-green-100"
+                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-green-100"
                   >
-                    Recibir Mercadería
+                    Confirmar Entrega
                   </button>
                 ) : (
-                  <span className="text-green-600 font-bold text-sm flex items-center gap-1">
-                    <CheckCircle2 size={16} /> Ingresado
-                  </span>
+                  <div className="flex items-center gap-2 text-green-600 font-black text-xs uppercase tracking-widest bg-green-50 px-4 py-2 rounded-full">
+                    <CheckCircle2 size={16} /> Completado
+                  </div>
                 )}
               </div>
             </div>
             
-            <div className="bg-gray-50/50 p-4 border-t border-gray-50 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="bg-gray-50/50 p-6 border-t border-gray-50 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {order.items.map((item:any, idx:number) => (
-                <div key={idx} className="flex items-center justify-between bg-white p-3 rounded-xl border border-gray-100 text-sm">
-                  <span className="font-bold text-gray-700 truncate mr-2">{item.name}</span>
-                  <span className="bg-blue-100 text-blue-700 font-black px-2 py-0.5 rounded text-xs">{item.quantity}</span>
+                <div key={idx} className="flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                  <span className="font-black text-gray-700 truncate mr-2 text-xs uppercase">{item.nombre}</span>
+                  <span className="bg-blue-600 text-white font-black px-3 py-1 rounded-lg text-xs">{item.quantity}</span>
                 </div>
               ))}
             </div>
@@ -137,53 +137,63 @@ export const Orders = ({ doctors, onReceiveOrder }: any) => {
         ))}
 
         {(activeTab === 'pending' ? pendingOrders : completedOrders).length === 0 && (
-          <div className="text-center py-20 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-            <ShoppingCart size={48} className="mx-auto text-gray-300 mb-4 opacity-50" />
-            <p className="text-gray-500 font-bold italic">No hay órdenes en esta categoría.</p>
+          <div className="text-center py-24 bg-white rounded-3xl border-2 border-dashed border-gray-100">
+            <ShoppingCart size={64} className="mx-auto text-gray-200 mb-6" />
+            <p className="text-gray-400 font-black text-sm uppercase tracking-widest">No hay registros para mostrar</p>
           </div>
         )}
       </div>
 
       {/* Modal Nuevo Pedido */}
       {showNewOrder && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
-              <h3 className="font-black text-xl flex items-center gap-2"><ShoppingCart /> Nuevo Pedido a Imprenta</h3>
-              <button onClick={() => setShowNewOrder(false)} className="hover:bg-white/10 p-2 rounded-full transition-colors"><X size={20}/></button>
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-8 bg-slate-950 text-white flex justify-between items-center">
+              <div>
+                <h3 className="font-black text-2xl flex items-center gap-3"><ShoppingCart /> Nueva Orden</h3>
+                <p className="text-slate-400 text-xs font-bold uppercase mt-1">Imprenta Central - Arévalo</p>
+              </div>
+              <button onClick={() => setShowNewOrder(false)} className="hover:bg-white/10 p-3 rounded-full transition-colors"><X size={24}/></button>
             </div>
-            <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-              <p className="text-sm text-gray-500 font-medium">Seleccione los médicos que necesitan reposición (100 unidades c/u):</p>
-              <div className="space-y-2">
+            
+            <div className="p-8 space-y-4 max-h-[50vh] overflow-y-auto custom-scrollbar">
+              <p className="text-xs text-gray-400 font-black uppercase tracking-widest mb-4">Seleccione los profesionales (100 u. c/u):</p>
+              <div className="grid grid-cols-1 gap-2">
                 {doctors.map((d:any) => {
                   const isSelected = selectedDocs.some(s => s.doctorId === d.id);
+                  const isLow = (d.stock_deposito_actual || 0) < (d.min_deposito || 0);
                   return (
                     <button 
                       key={d.id}
                       onClick={() => {
                         if (isSelected) setSelectedDocs(selectedDocs.filter(s => s.doctorId !== d.id));
-                        else setSelectedDocs([...selectedDocs, { doctorId: d.id, name: d.name, quantity: 100 }]);
+                        else setSelectedDocs([...selectedDocs, { doctorId: d.id, nombre: d.nombre, quantity: 100 }]);
                       }}
-                      className={`w-full flex justify-between items-center p-3 rounded-xl border transition-all ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-100 hover:bg-gray-50'}`}
+                      className={`w-full flex justify-between items-center p-4 rounded-2xl border-2 transition-all ${isSelected ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-gray-50 hover:border-gray-200 bg-gray-50/50'}`}
                     >
                       <div className="text-left">
-                        <p className="font-bold text-sm text-gray-800">{d.name}</p>
-                        <p className="text-[10px] text-gray-500 uppercase font-black">Stock Actual: {d.stock_deposito}</p>
+                        <p className="font-black text-sm text-gray-800 uppercase">{d.nombre}</p>
+                        <p className={`text-[10px] font-black uppercase mt-1 ${isLow ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
+                          Stock Dep: {d.stock_deposito_actual} {isLow && '⚠️'}
+                        </p>
                       </div>
-                      {isSelected && <CheckCircle2 className="text-blue-600" size={18} />}
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-200'}`}>
+                         {isSelected && <CheckCircle2 size={14} className="text-white" />}
+                      </div>
                     </button>
                   );
                 })}
               </div>
             </div>
-            <div className="p-6 bg-gray-50 flex gap-3">
-              <button onClick={() => setShowNewOrder(false)} className="flex-1 py-3 text-gray-500 font-bold">Cancelar</button>
+            
+            <div className="p-8 bg-gray-50 flex gap-4">
+              <button onClick={() => setShowNewOrder(false)} className="flex-1 py-4 text-gray-400 font-black text-xs uppercase tracking-widest">Cancelar</button>
               <button 
                 onClick={handleCreateOrder}
                 disabled={selectedDocs.length === 0}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white py-3 rounded-xl font-bold shadow-lg shadow-blue-100 transition-all active:scale-95"
+                className="flex-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 text-white py-4 px-8 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-blue-100 transition-all active:scale-95 disabled:shadow-none"
               >
-                Crear Orden ({selectedDocs.length})
+                Generar Pedido ({selectedDocs.length})
               </button>
             </div>
           </div>
