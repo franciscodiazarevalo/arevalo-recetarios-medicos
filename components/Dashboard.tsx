@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Package, Building2, AlertTriangle, MessageCircle, ShoppingCart, ArrowLeft, Search, ArrowRightLeft } from 'lucide-react';
+import { Package, Building2, AlertTriangle, MessageCircle, ShoppingCart, ArrowLeft, Search, ArrowRightLeft, FileText, Printer } from 'lucide-react';
 
 export const Dashboard = ({ doctors, stats, onNavigate, onPrepareDraft }: any) => {
   const [view, setView] = useState<'overview' | 'list'>('overview');
@@ -14,6 +14,10 @@ export const Dashboard = ({ doctors, stats, onNavigate, onPrepareDraft }: any) =
     const stock = type === 'PB' ? doc.stock_pb_actual : doc.stock_deposito_actual;
     const msg = `Hola! Aviso de Stock: El profesional ${doc.nombre} tiene solo ${stock} recetarios en ${type === 'PB' ? 'Planta Baja' : 'Depósito'}.`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const handleShowList = (type: 'pb' | 'deposito') => {
@@ -49,30 +53,40 @@ export const Dashboard = ({ doctors, stats, onNavigate, onPrepareDraft }: any) =
   if (view === 'list') {
     return (
       <div className="p-6 space-y-6 animate-in fade-in duration-300">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between no-print">
           <button onClick={() => setView('overview')} className="flex items-center gap-2 text-blue-600 font-bold hover:underline">
             <ArrowLeft size={20} /> Volver al Resumen
           </button>
-          <div className="relative w-64">
-            <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Buscar..." 
-              className="w-full pl-10 pr-4 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex items-center gap-4">
+            <button onClick={handlePrint} className="bg-gray-100 text-gray-600 px-4 py-2 rounded-xl flex items-center gap-2 font-bold text-xs uppercase transition-all hover:bg-gray-200">
+              <Printer size={16} /> Imprimir Lista
+            </button>
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+              <input 
+                type="text" 
+                placeholder="Buscar..." 
+                className="w-full pl-10 pr-4 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
         </div>
-        
+
+        {/* Vista para impresión */}
         <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+          <div className="p-6 bg-gray-50 border-b hidden print:block">
+            <h1 className="text-xl font-black uppercase">Reporte de Stock - {listType === 'pb' ? 'Planta Baja' : 'Depósito'}</h1>
+            <p className="text-sm text-gray-500 font-bold">{new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}</p>
+          </div>
           <table className="w-full text-left">
             <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-bold">
               <tr>
                 <th className="p-4">Profesional</th>
                 <th className="p-4 text-center">Stock Actual</th>
                 <th className="p-4 text-center">Estado</th>
-                <th className="p-4 text-right">Aviso</th>
+                <th className="p-4 text-right no-print">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -95,13 +109,16 @@ export const Dashboard = ({ doctors, stats, onNavigate, onPrepareDraft }: any) =
                         <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter">Bien</span>
                       )}
                     </td>
-                    <td className="p-4 text-right">
-                       <button 
-                         onClick={() => handleWhatsApp(d, listType === 'pb' ? 'PB' : 'DEP')}
-                         className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-all"
-                       >
-                         <MessageCircle size={18} />
-                       </button>
+                    <td className="p-4 text-right no-print">
+                       <div className="flex justify-end gap-2">
+                         <button 
+                           onClick={() => handleWhatsApp(d, listType === 'pb' ? 'PB' : 'DEP')}
+                           className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-all"
+                           title="Enviar WhatsApp"
+                         >
+                           <MessageCircle size={18} />
+                         </button>
+                       </div>
                     </td>
                   </tr>
                 );
@@ -131,20 +148,26 @@ export const Dashboard = ({ doctors, stats, onNavigate, onPrepareDraft }: any) =
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-5 rounded-2xl shadow-sm border flex flex-col h-[380px]">
-          <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><span className="w-1.5 h-5 bg-orange-500 rounded-full"></span> Faltantes PB</h4>
+        {/* FALTANTES PB */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border flex flex-col h-[420px]">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="font-bold text-gray-800 flex items-center gap-2"><span className="w-1.5 h-5 bg-orange-500 rounded-full"></span> Faltantes PB</h4>
+            <button onClick={handlePrint} className="no-print p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
+                <FileText size={18}/>
+            </button>
+          </div>
           <div className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
             {faltantesPB.length > 0 ? faltantesPB.map((d: any) => (
-              <div key={d.id} className="group flex justify-between items-center p-2.5 bg-orange-50 rounded-xl border border-orange-100 text-sm">
-                <span className="font-bold text-gray-700 truncate mr-2 uppercase text-xs">{d.nombre}</span>
+              <div key={d.id} className="group flex justify-between items-center p-3 bg-orange-50 rounded-xl border border-orange-100 text-sm hover:shadow-sm transition-all">
+                <span className="font-bold text-gray-700 truncate mr-2 uppercase text-[11px]">{d.nombre}</span>
                 <div className="flex items-center gap-2">
                    <button 
                      onClick={() => handleWhatsApp(d, 'PB')}
-                     className="opacity-0 group-hover:opacity-100 p-1.5 bg-emerald-500 text-white rounded-lg transition-all"
+                     className="md:opacity-0 group-hover:opacity-100 p-1.5 bg-emerald-500 text-white rounded-lg transition-all shadow-sm"
                    >
                      <MessageCircle size={14} />
                    </button>
-                   <span className="text-orange-700 font-bold px-2 py-0.5 bg-white rounded text-xs whitespace-nowrap">Stock: {d.stock_pb_actual}</span>
+                   <span className="text-orange-700 font-black px-2 py-0.5 bg-white rounded text-[10px] whitespace-nowrap">Stock: {d.stock_pb_actual}</span>
                 </div>
               </div>
             )) : <p className="text-center text-gray-400 py-10 text-xs font-bold uppercase tracking-widest">Sin faltantes en PB</p>}
@@ -152,33 +175,39 @@ export const Dashboard = ({ doctors, stats, onNavigate, onPrepareDraft }: any) =
           <div className="flex gap-3 mt-4 no-print">
             <button 
                 onClick={(e) => { e.preventDefault(); handleCreateDraftMovements(); }} 
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-blue-100"
             >
                 <ArrowRightLeft size={16}/> Preparar Traslado
             </button>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow-sm border flex flex-col h-[380px]">
-          <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><span className="w-1.5 h-5 bg-red-500 rounded-full"></span> Faltantes Depósito</h4>
+        {/* FALTANTES DEPOSITO */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border flex flex-col h-[420px]">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="font-bold text-gray-800 flex items-center gap-2"><span className="w-1.5 h-5 bg-red-500 rounded-full"></span> Faltantes Depósito</h4>
+            <button onClick={handlePrint} className="no-print p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
+                <FileText size={18}/>
+            </button>
+          </div>
           <div className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
             {faltantesDep.length > 0 ? faltantesDep.map((d: any) => (
-              <div key={d.id} className="group flex justify-between items-center p-2.5 bg-red-50 rounded-xl border border-red-100 text-sm">
-                <span className="font-bold text-gray-700 truncate mr-2 uppercase text-xs">{d.nombre}</span>
+              <div key={d.id} className="group flex justify-between items-center p-3 bg-red-50 rounded-xl border border-red-100 text-sm hover:shadow-sm transition-all">
+                <span className="font-bold text-gray-700 truncate mr-2 uppercase text-[11px]">{d.nombre}</span>
                 <div className="flex items-center gap-2">
                    <button 
                      onClick={() => handleWhatsApp(d, 'DEP')}
-                     className="opacity-0 group-hover:opacity-100 p-1.5 bg-emerald-500 text-white rounded-lg transition-all"
+                     className="md:opacity-0 group-hover:opacity-100 p-1.5 bg-emerald-500 text-white rounded-lg transition-all shadow-sm"
                    >
                      <MessageCircle size={14} />
                    </button>
-                   <span className="text-red-700 font-bold px-2 py-0.5 bg-white rounded text-xs whitespace-nowrap">Stock: {d.stock_deposito_actual}</span>
+                   <span className="text-red-700 font-black px-2 py-0.5 bg-white rounded text-[10px] whitespace-nowrap">Stock: {d.stock_deposito_actual}</span>
                 </div>
               </div>
             )) : <p className="text-center text-gray-400 py-10 text-xs font-bold uppercase tracking-widest">Depósito abastecido</p>}
           </div>
           <div className="flex gap-3 mt-4 no-print">
-            <button onClick={() => onNavigate('orders')} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95"><ShoppingCart size={16}/> Órden Compra</button>
+            <button onClick={() => onNavigate('orders')} className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-indigo-100"><ShoppingCart size={16}/> Generar Órden de Compra</button>
           </div>
         </div>
       </div>

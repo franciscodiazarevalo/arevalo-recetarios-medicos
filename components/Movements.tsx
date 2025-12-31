@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Trash2, Layers, CheckCircle, Edit3, Info } from 'lucide-react';
+// Added X to the import list
+import { Search, Plus, Trash2, Layers, CheckCircle, Edit3, Info, UserCheck, Activity, X } from 'lucide-react';
 
 interface PendingMovement {
   doctorId: string;
@@ -20,23 +21,32 @@ export const Movements = ({ doctors, onBatchTransfer, draftTransfers = [], onCle
 
   const selectedDoctor = doctors.find((d:any) => d.id === selectedDoctorId);
 
-  // Sincronización con el esquema real de la planilla
   useEffect(() => {
     if (draftTransfers && draftTransfers.length > 0) {
       const mappedItems = draftTransfers.map((t: any) => {
         const doc = doctors.find((d: any) => d.id === t.doctorId);
+        if (!doc) return null;
         return {
           doctorId: t.doctorId,
-          doctorName: doc ? doc.nombre : 'Profesional',
-          doctorSpecialty: doc ? doc.especialidad : '',
-          currentPB: doc ? (doc.stock_pb_actual || 0) : 0,
-          idealPB: doc ? (doc.ideal_pb || 0) : 0,
-          currentDepot: doc ? (doc.stock_deposito_actual || 0) : 0,
+          doctorName: doc.nombre,
+          doctorSpecialty: doc.especialidad,
+          currentPB: (doc.stock_pb_actual || 0),
+          idealPB: (doc.ideal_pb || 0),
+          currentDepot: (doc.stock_deposito_actual || 0),
           quantity: t.quantity
         };
-      });
+      }).filter(Boolean);
       
-      setPendingList(mappedItems);
+      // Combinar con lo existente evitando duplicados
+      setPendingList(prev => {
+        const newList = [...prev];
+        mappedItems.forEach((newItem: any) => {
+          if (!newList.some(e => e.doctorId === newItem.doctorId)) {
+            newList.push(newItem);
+          }
+        });
+        return newList;
+      });
       if (onClearDraft) onClearDraft();
     }
   }, [draftTransfers, doctors]);
@@ -91,7 +101,7 @@ export const Movements = ({ doctors, onBatchTransfer, draftTransfers = [], onCle
     const transfers = pendingList.map(p => ({ doctorId: p.doctorId, quantity: p.quantity }));
     onBatchTransfer(transfers);
     setPendingList([]);
-    alert('Traslado confirmado. El stock de Planta Baja ha sido actualizado.');
+    alert('Traslado confirmado con éxito.');
   };
 
   const filteredDoctors = doctors.filter((doc:any) => 
@@ -102,156 +112,174 @@ export const Movements = ({ doctors, onBatchTransfer, draftTransfers = [], onCle
     <div className="p-8 max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center justify-between mb-8">
         <div>
-           <h2 className="text-2xl font-black text-gray-900">Traslado Masivo a Planta Baja</h2>
-           <p className="text-sm text-gray-500 font-medium italic">Revise el detalle de los faltantes antes de confirmar la bajada de mercadería.</p>
+           <h2 className="text-3xl font-black text-gray-900 tracking-tighter uppercase">Movimientos Internos</h2>
+           <p className="text-sm text-gray-500 font-medium">Baje recetarios del depósito a planta baja seleccionando cualquier profesional.</p>
         </div>
-        <div className="bg-blue-600 text-white px-5 py-2.5 rounded-2xl font-bold flex items-center shadow-lg shadow-blue-100">
-            <Layers className="mr-2" size={20} />
-            {pendingList.length} Médicos en Lista
+        <div className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center shadow-2xl shadow-slate-200">
+            <Layers className="mr-3 text-blue-400" size={18} />
+            {pendingList.length} Profesionales en Lista
         </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
         
-        {/* Columna de Agregar Manual */}
+        {/* Columna de BUSCADOR GLOBAL */}
         <div className="xl:col-span-1 space-y-6">
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Plus size={18} className="text-blue-600"/> Agregar otro Médico</h3>
+          <div className="bg-white p-8 rounded-[40px] shadow-xl border border-gray-100">
+            <h3 className="font-black text-gray-800 text-sm uppercase tracking-widest mb-6 flex items-center gap-2">
+                <Search size={18} className="text-blue-600"/> Buscador Global
+            </h3>
             
-            <div className="relative mb-4">
+            <div className="relative mb-6">
               <input 
                 type="text" 
-                placeholder="Buscar por nombre..." 
-                className="w-full pl-4 pr-3 py-3 border border-gray-100 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
+                placeholder="Nombre del médico..." 
+                className="w-full pl-5 pr-4 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none transition-all"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
 
               {searchTerm && !selectedDoctorId && (
-                <div className="absolute top-full mt-2 left-0 w-full max-h-60 overflow-y-auto border border-gray-100 rounded-xl bg-white z-50 shadow-2xl">
+                <div className="absolute top-full mt-2 left-0 w-full max-h-80 overflow-y-auto border border-gray-100 rounded-[24px] bg-white z-[100] shadow-[0_20px_50px_rgba(0,0,0,0.1)] custom-scrollbar">
                   {filteredDoctors.length > 0 ? (
                     filteredDoctors.map((doc:any) => (
-                      <div 
+                      <button 
                         key={doc.id} 
-                        className="p-3 hover:bg-blue-50 cursor-pointer flex justify-between items-center group transition-colors border-b last:border-0"
+                        className="w-full p-4 hover:bg-blue-50 cursor-pointer flex justify-between items-center group transition-colors border-b last:border-0 text-left"
                         onClick={() => { setSelectedDoctorId(doc.id); setSearchTerm(''); }}
                       >
                         <div>
-                            <span className="text-sm font-bold block text-gray-800 uppercase">{doc.nombre}</span>
-                            <span className="text-[10px] text-gray-400 font-black uppercase">Depósito: {doc.stock_deposito_actual}</span>
+                            <span className="text-xs font-black block text-gray-800 uppercase leading-tight group-hover:text-blue-600 transition-colors">{doc.nombre}</span>
+                            <span className="text-[9px] text-gray-400 font-black uppercase tracking-tighter">Stock DEP: {doc.stock_deposito_actual}</span>
                         </div>
-                      </div>
+                        <Plus size={14} className="text-gray-300 group-hover:text-blue-500 group-hover:scale-125 transition-all" />
+                      </button>
                     ))
                   ) : (
-                    <div className="p-4 text-xs text-gray-400 text-center">Sin resultados</div>
+                    <div className="p-6 text-[10px] text-gray-400 font-bold uppercase tracking-widest text-center">Sin resultados</div>
                   )}
                 </div>
               )}
             </div>
             
-            {selectedDoctor && (
-              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 mb-4 animate-in zoom-in-95">
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-bold text-blue-900 text-[10px] leading-tight pr-2 uppercase">{selectedDoctor.nombre}</h3>
-                  <button onClick={() => setSelectedDoctorId(null)} className="text-[10px] text-blue-400 font-black">X</button>
+            {selectedDoctor ? (
+              <div className="bg-blue-600 p-6 rounded-[32px] text-white shadow-xl shadow-blue-100 animate-in zoom-in-95 duration-200">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-blue-200">Seleccionado</p>
+                    <h3 className="font-black text-sm leading-tight pr-2 uppercase mt-1">{selectedDoctor.nombre}</h3>
+                  </div>
+                  {/* Now using imported X icon */}
+                  <button onClick={() => setSelectedDoctorId(null)} className="bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors"><X size={14}/></button>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-3 mt-4">
                   <input
                     type="number"
                     min="1"
                     autoFocus
                     value={transferQty || ''}
                     onChange={(e) => setTransferQty(parseInt(e.target.value) || 0)}
-                    className="flex-1 px-3 py-2 rounded-xl border-none text-sm font-bold outline-none shadow-inner"
-                    placeholder="Cantidad"
+                    className="flex-1 bg-white text-slate-900 px-4 py-3 rounded-xl text-sm font-black outline-none shadow-inner"
+                    placeholder="Cant."
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddToBatch()}
                   />
                   <button
                     onClick={() => handleAddToBatch()}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-blue-700"
+                    className="bg-slate-900 text-white px-5 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-800 transition-all active:scale-95"
                   >
-                    Añadir
+                    Agregar
                   </button>
                 </div>
               </div>
+            ) : (
+               <div className="py-10 text-center bg-gray-50 rounded-[32px] border-2 border-dashed border-gray-100 opacity-60">
+                   <UserCheck size={32} className="mx-auto text-gray-300 mb-3" />
+                   <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 px-4 leading-relaxed">Busque un médico arriba para sumarlo a la bajada</p>
+               </div>
             )}
           </div>
         </div>
 
         {/* Columna de la Planilla Detallada */}
         <div className="xl:col-span-3">
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden flex flex-col min-h-[500px]">
-             <div className="p-6 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center">
-                 <h3 className="font-black text-gray-700 uppercase tracking-widest text-xs">Planilla Detallada de Traslado</h3>
+          <div className="bg-white rounded-[40px] shadow-sm border border-gray-100 overflow-hidden flex flex-col min-h-[600px]">
+             <div className="p-8 border-b border-gray-50 bg-gray-50/30 flex justify-between items-center">
+                 <div className="flex items-center gap-3">
+                    <Activity size={20} className="text-blue-500" />
+                    <h3 className="font-black text-gray-800 uppercase tracking-[0.2em] text-xs">Planilla de Bajada a Planta Baja</h3>
+                 </div>
                  {pendingList.length > 0 && (
                      <button 
                         onClick={() => setPendingList([])} 
-                        className="text-[10px] text-red-500 font-black uppercase bg-white px-3 py-1.5 rounded-lg border border-red-50 hover:bg-red-50"
+                        className="text-[9px] text-red-500 font-black uppercase bg-white px-4 py-2 rounded-xl border border-red-100 hover:bg-red-50 transition-all shadow-sm"
                      >
-                        Limpiar Todo
+                        Vaciar Lista
                      </button>
                  )}
              </div>
              
-             <div className="flex-1 overflow-x-auto">
+             <div className="flex-1 overflow-x-auto custom-scrollbar">
                  {pendingList.length === 0 ? (
-                     <div className="h-full flex flex-col items-center justify-center text-gray-400 p-20 opacity-30">
-                         <Layers size={64} className="mb-4" />
-                         <p className="text-center font-bold text-sm">No hay médicos seleccionados para trasladar.</p>
+                     <div className="h-full flex flex-col items-center justify-center text-gray-300 p-20">
+                         <Layers size={80} className="mb-6 opacity-20" />
+                         <p className="text-center font-black text-xs uppercase tracking-[0.2em] opacity-40">No hay traslados pendientes</p>
                      </div>
                  ) : (
                     <table className="w-full text-left border-collapse">
                         <thead className="bg-gray-50/50 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b">
                             <tr>
-                                <th className="px-6 py-4">Profesional</th>
-                                <th className="px-6 py-4 text-center">Estado actual PB</th>
-                                <th className="px-6 py-4 text-center">Stock Depósito</th>
-                                <th className="px-6 py-4 text-center w-40">Cantidad a Bajar</th>
-                                <th className="px-6 py-4 text-right">Acción</th>
+                                <th className="px-8 py-5">Profesional</th>
+                                <th className="px-6 py-5 text-center">Estado Actual PB</th>
+                                <th className="px-6 py-5 text-center">Stock Depósito</th>
+                                <th className="px-6 py-5 text-center w-48">Cant. a Bajar</th>
+                                <th className="px-8 py-5 text-right">Acción</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                             {pendingList.map((item, idx) => {
                                 const isOverStock = item.quantity > item.currentDepot;
                                 return (
-                                    <tr key={item.doctorId} className={`group transition-colors ${isOverStock ? 'bg-red-50/30' : 'hover:bg-blue-50/20'}`}>
-                                        <td className="px-6 py-4">
-                                          <p className="text-sm font-bold text-gray-800 uppercase">{item.doctorName}</p>
-                                          <p className="text-[10px] text-gray-500 font-medium">{item.doctorSpecialty}</p>
+                                    <tr key={item.doctorId} className={`group transition-colors ${isOverStock ? 'bg-red-50/50' : 'hover:bg-blue-50/20'}`}>
+                                        <td className="px-8 py-5">
+                                          <p className="text-xs font-black text-gray-800 uppercase tracking-tight">{item.doctorName}</p>
+                                          <p className="text-[10px] text-gray-400 font-bold italic">{item.doctorSpecialty}</p>
                                         </td>
-                                        <td className="px-6 py-4 text-center">
+                                        <td className="px-6 py-5 text-center">
                                           <div className="inline-flex flex-col items-center">
-                                              <span className="text-xs font-black text-gray-700">{item.currentPB} / {item.idealPB}</span>
-                                              <div className="w-16 h-1.5 bg-gray-100 rounded-full mt-1 overflow-hidden">
+                                              <span className={`text-[11px] font-black ${item.currentPB < 5 ? 'text-orange-500' : 'text-gray-600'}`}>
+                                                {item.currentPB} / {item.idealPB}
+                                              </span>
+                                              <div className="w-20 h-2 bg-gray-100 rounded-full mt-1.5 overflow-hidden border border-gray-50 shadow-inner">
                                                   <div 
-                                                    className={`h-full ${item.currentPB === 0 ? 'bg-red-500' : 'bg-orange-400'}`} 
+                                                    className={`h-full transition-all duration-700 ${item.currentPB === 0 ? 'bg-red-500' : 'bg-blue-500'}`} 
                                                     style={{ width: `${Math.min(100, (item.currentPB / (item.idealPB || 1)) * 100)}%` }}
                                                   ></div>
                                               </div>
                                           </div>
                                         </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className={`text-xs font-bold px-2 py-1 rounded-lg ${item.currentDepot === 0 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>
-                                                {item.currentDepot} disponibles
+                                        <td className="px-6 py-5 text-center">
+                                            <span className={`text-[10px] font-black px-3 py-1.5 rounded-xl border ${item.currentDepot === 0 ? 'bg-red-50 text-red-500 border-red-100' : 'bg-gray-50 text-gray-500 border-gray-100'}`}>
+                                                {item.currentDepot} DISP.
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <div className={`flex items-center gap-2 bg-white rounded-xl border p-1 shadow-sm transition-all ${isOverStock ? 'border-red-300 ring-2 ring-red-50' : 'border-gray-200 focus-within:border-blue-500'}`}>
+                                        <td className="px-6 py-5 text-center">
+                                            <div className={`flex items-center gap-2 bg-white rounded-2xl border-2 px-3 py-2 transition-all ${isOverStock ? 'border-red-400 bg-red-50 shadow-lg shadow-red-100 ring-2 ring-red-100' : 'border-gray-100 focus-within:border-blue-500 focus-within:shadow-lg focus-within:shadow-blue-50'}`}>
                                               <input 
                                                 type="number" 
-                                                className="w-full text-center text-sm font-black text-blue-600 outline-none border-none bg-transparent"
+                                                className="w-full text-center text-sm font-black text-blue-700 outline-none border-none bg-transparent"
                                                 value={item.quantity}
                                                 onChange={(e) => handleUpdateQuantity(idx, parseInt(e.target.value) || 0)}
                                               />
-                                              <Edit3 size={14} className="text-gray-300 mr-2" />
+                                              <Edit3 size={14} className="text-blue-200" />
                                             </div>
-                                            {isOverStock && <p className="text-[9px] text-red-500 font-black mt-1 uppercase tracking-tighter">Insuficiente en depósito</p>}
+                                            {isOverStock && <p className="text-[9px] text-red-500 font-black mt-2 uppercase tracking-tighter animate-pulse">Stock Insuficiente</p>}
                                         </td>
-                                        <td className="px-6 py-4 text-right">
+                                        <td className="px-8 py-5 text-right">
                                             <button 
                                                 onClick={() => handleRemoveFromList(idx)}
-                                                className="text-gray-300 hover:text-red-500 transition-all p-2 rounded-lg hover:bg-white shadow-sm"
+                                                className="text-gray-200 hover:text-red-500 transition-all p-3 rounded-2xl hover:bg-white hover:shadow-xl group"
                                             >
-                                                <Trash2 size={18} />
+                                                <Trash2 size={20} className="group-hover:rotate-12 transition-transform" />
                                             </button>
                                         </td>
                                     </tr>
@@ -262,13 +290,13 @@ export const Movements = ({ doctors, onBatchTransfer, draftTransfers = [], onCle
                  )}
              </div>
 
-             <div className="p-8 border-t border-gray-100 bg-gray-50/50">
+             <div className="p-10 border-t border-gray-100 bg-white">
                  <button
                     onClick={handleProcessBatch}
                     disabled={pendingList.length === 0}
-                    className="w-full flex items-center justify-center py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-200 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl transition-all active:scale-95 disabled:shadow-none"
+                    className="w-full flex items-center justify-center py-6 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-200 text-white rounded-[32px] font-black text-xs uppercase tracking-[0.3em] shadow-[0_20px_50px_rgba(16,185,129,0.2)] transition-all active:scale-[0.98] disabled:shadow-none"
                  >
-                    <CheckCircle className="mr-3" size={24} />
+                    <CheckCircle className="mr-4" size={28} />
                     Confirmar Bajada de {pendingList.length} Profesionales
                  </button>
              </div>
