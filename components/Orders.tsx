@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ShoppingCart, CheckCircle2, Truck, FileText, Calendar, Plus, Trash2, X } from 'lucide-react';
+import { ShoppingCart, CheckCircle2, Truck, FileText, Calendar, Plus, Trash2, X, Edit3 } from 'lucide-react';
 
 export const Orders = ({ doctors, onReceiveOrder }: any) => {
   const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
@@ -15,10 +15,31 @@ export const Orders = ({ doctors, onReceiveOrder }: any) => {
       items: doctors.filter((d:any) => (d.stock_deposito_actual || 0) < (d.min_deposito || 0)).slice(0, 3).map((d:any) => ({ 
         doctorId: d.id, 
         nombre: d.nombre, 
-        quantity: 100 
+        quantity: Math.max(0, (d.ideal_deposito || 100) - (d.stock_deposito_actual || 0)) || 100
       }))
     }
   ]);
+
+  const handleToggleDoctor = (d: any) => {
+    const isSelected = selectedDocs.some(s => s.doctorId === d.id);
+    if (isSelected) {
+      setSelectedDocs(selectedDocs.filter(s => s.doctorId !== d.id));
+    } else {
+      // Cálculo sugerido: Ideal - Actual
+      const suggestedQty = Math.max(0, (d.ideal_deposito || 100) - (d.stock_deposito_actual || 0));
+      setSelectedDocs([...selectedDocs, { 
+        doctorId: d.id, 
+        nombre: d.nombre, 
+        quantity: suggestedQty || 50 // Mínimo de cortesía si el ideal es 0
+      }]);
+    }
+  };
+
+  const handleUpdateQuantity = (doctorId: string, newQty: number) => {
+    setSelectedDocs(selectedDocs.map(s => 
+      s.doctorId === doctorId ? { ...s, quantity: Math.max(1, newQty) } : s
+    ));
+  };
 
   const handleCreateOrder = () => {
     if (selectedDocs.length === 0) return;
@@ -144,56 +165,88 @@ export const Orders = ({ doctors, onReceiveOrder }: any) => {
         )}
       </div>
 
-      {/* Modal Nuevo Pedido */}
+      {/* Modal Nuevo Pedido Rediseñado */}
       {showNewOrder && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[200] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-8 bg-slate-950 text-white flex justify-between items-center">
+          <div className="bg-white w-full max-w-3xl rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            <div className="p-8 bg-slate-950 text-white flex justify-between items-center shrink-0">
               <div>
-                <h3 className="font-black text-2xl flex items-center gap-3"><ShoppingCart /> Nueva Orden</h3>
-                <p className="text-slate-400 text-xs font-bold uppercase mt-1">Imprenta Central - Arévalo</p>
+                <h3 className="font-black text-2xl flex items-center gap-3"><ShoppingCart /> Nueva Orden de Compra</h3>
+                <p className="text-slate-400 text-xs font-bold uppercase mt-1">Imprenta Central • Cálculo sugerido por metas</p>
               </div>
               <button onClick={() => setShowNewOrder(false)} className="hover:bg-white/10 p-3 rounded-full transition-colors"><X size={24}/></button>
             </div>
             
-            <div className="p-8 space-y-4 max-h-[50vh] overflow-y-auto custom-scrollbar">
-              <p className="text-xs text-gray-400 font-black uppercase tracking-widest mb-4">Seleccione los profesionales (100 u. c/u):</p>
-              <div className="grid grid-cols-1 gap-2">
-                {doctors.map((d:any) => {
-                  const isSelected = selectedDocs.some(s => s.doctorId === d.id);
-                  const isLow = (d.stock_deposito_actual || 0) < (d.min_deposito || 0);
-                  return (
-                    <button 
-                      key={d.id}
-                      onClick={() => {
-                        if (isSelected) setSelectedDocs(selectedDocs.filter(s => s.doctorId !== d.id));
-                        else setSelectedDocs([...selectedDocs, { doctorId: d.id, nombre: d.nombre, quantity: 100 }]);
-                      }}
-                      className={`w-full flex justify-between items-center p-4 rounded-2xl border-2 transition-all ${isSelected ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-gray-50 hover:border-gray-200 bg-gray-50/50'}`}
-                    >
-                      <div className="text-left">
-                        <p className="font-black text-sm text-gray-800 uppercase">{d.nombre}</p>
-                        <p className={`text-[10px] font-black uppercase mt-1 ${isLow ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
-                          Stock Dep: {d.stock_deposito_actual} {isLow && '⚠️'}
-                        </p>
-                      </div>
-                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-200'}`}>
-                         {isSelected && <CheckCircle2 size={14} className="text-white" />}
-                      </div>
-                    </button>
-                  );
-                })}
+            <div className="p-8 overflow-y-auto custom-scrollbar flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Lista de Selección */}
+                <div>
+                  <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-4">Paso 1: Seleccione Médicos</p>
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                    {doctors.map((d:any) => {
+                      const isSelected = selectedDocs.some(s => s.doctorId === d.id);
+                      const gap = Math.max(0, (d.ideal_deposito || 0) - (d.stock_deposito_actual || 0));
+                      const isLow = (d.stock_deposito_actual || 0) < (d.min_deposito || 0);
+
+                      return (
+                        <button 
+                          key={d.id}
+                          onClick={() => handleToggleDoctor(d)}
+                          className={`w-full flex justify-between items-center p-3 rounded-2xl border-2 transition-all ${isSelected ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-gray-50 hover:border-gray-200 bg-gray-50/50'}`}
+                        >
+                          <div className="text-left">
+                            <p className="font-black text-[11px] text-gray-800 uppercase leading-tight">{d.nombre}</p>
+                            <p className={`text-[9px] font-black uppercase mt-1 ${isLow ? 'text-red-500' : 'text-gray-400'}`}>
+                              Stock: {d.stock_deposito_actual} / {d.ideal_deposito} {isLow && '⚠️'}
+                            </p>
+                          </div>
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-200'}`}>
+                             {isSelected && <CheckCircle2 size={12} className="text-white" />}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Lista de Edición de Cantidades */}
+                <div className="bg-gray-50 p-6 rounded-[32px] border border-gray-100 flex flex-col h-full">
+                   <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-4">Paso 2: Ajustar Cantidades</p>
+                   {selectedDocs.length === 0 ? (
+                     <div className="flex-1 flex flex-col items-center justify-center text-center opacity-30">
+                        <Edit3 size={32} className="mb-2" />
+                        <p className="text-xs font-bold uppercase">Seleccione médicos para ver sugerencias</p>
+                     </div>
+                   ) : (
+                     <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                        {selectedDocs.map((item) => (
+                           <div key={item.doctorId} className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 animate-in slide-in-from-right-2">
+                              <p className="text-[10px] font-black text-gray-800 uppercase mb-2 truncate">{item.nombre}</p>
+                              <div className="flex items-center gap-3">
+                                 <input 
+                                   type="number" 
+                                   className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl px-3 py-2 text-sm font-black text-blue-600 outline-none focus:border-blue-500 transition-all"
+                                   value={item.quantity}
+                                   onChange={(e) => handleUpdateQuantity(item.doctorId, parseInt(e.target.value) || 0)}
+                                 />
+                                 <span className="text-[9px] font-black text-gray-400 uppercase">Unid.</span>
+                              </div>
+                           </div>
+                        ))}
+                     </div>
+                   )}
+                </div>
               </div>
             </div>
             
-            <div className="p-8 bg-gray-50 flex gap-4">
+            <div className="p-8 bg-gray-50 border-t border-gray-100 flex gap-4 shrink-0">
               <button onClick={() => setShowNewOrder(false)} className="flex-1 py-4 text-gray-400 font-black text-xs uppercase tracking-widest">Cancelar</button>
               <button 
                 onClick={handleCreateOrder}
                 disabled={selectedDocs.length === 0}
-                className="flex-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 text-white py-4 px-8 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-blue-100 transition-all active:scale-95 disabled:shadow-none"
+                className="flex-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 text-white py-4 px-10 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-blue-100 transition-all active:scale-95 disabled:shadow-none"
               >
-                Generar Pedido ({selectedDocs.length})
+                Generar Orden ({selectedDocs.length})
               </button>
             </div>
           </div>

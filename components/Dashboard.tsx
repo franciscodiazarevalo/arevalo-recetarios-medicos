@@ -10,6 +10,12 @@ export const Dashboard = ({ doctors, stats, onNavigate, onPrepareDraft }: any) =
   const faltantesPB = doctors.filter((d: any) => (Number(d.stock_pb_actual) || 0) < (Number(d.min_pb) || 0));
   const faltantesDep = doctors.filter((d: any) => (Number(d.stock_deposito_actual) || 0) < (Number(d.min_deposito) || 0));
 
+  const handleWhatsApp = (doc: any, type: 'PB' | 'DEP') => {
+    const stock = type === 'PB' ? doc.stock_pb_actual : doc.stock_deposito_actual;
+    const msg = `Hola! Aviso de Stock: El profesional ${doc.nombre} tiene solo ${stock} recetarios en ${type === 'PB' ? 'Planta Baja' : 'Depósito'}.`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
   const handleShowList = (type: 'pb' | 'deposito') => {
     setListType(type);
     setView('list');
@@ -66,6 +72,7 @@ export const Dashboard = ({ doctors, stats, onNavigate, onPrepareDraft }: any) =
                 <th className="p-4">Profesional</th>
                 <th className="p-4 text-center">Stock Actual</th>
                 <th className="p-4 text-center">Estado</th>
+                <th className="p-4 text-right">Aviso</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -87,6 +94,14 @@ export const Dashboard = ({ doctors, stats, onNavigate, onPrepareDraft }: any) =
                       ) : (
                         <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter">Bien</span>
                       )}
+                    </td>
+                    <td className="p-4 text-right">
+                       <button 
+                         onClick={() => handleWhatsApp(d, listType === 'pb' ? 'PB' : 'DEP')}
+                         className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-all"
+                       >
+                         <MessageCircle size={18} />
+                       </button>
                     </td>
                   </tr>
                 );
@@ -120,9 +135,17 @@ export const Dashboard = ({ doctors, stats, onNavigate, onPrepareDraft }: any) =
           <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><span className="w-1.5 h-5 bg-orange-500 rounded-full"></span> Faltantes PB</h4>
           <div className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
             {faltantesPB.length > 0 ? faltantesPB.map((d: any) => (
-              <div key={d.id} className="flex justify-between items-center p-2.5 bg-orange-50 rounded-xl border border-orange-100 text-sm">
+              <div key={d.id} className="group flex justify-between items-center p-2.5 bg-orange-50 rounded-xl border border-orange-100 text-sm">
                 <span className="font-bold text-gray-700 truncate mr-2 uppercase text-xs">{d.nombre}</span>
-                <span className="text-orange-700 font-bold px-2 py-0.5 bg-white rounded text-xs whitespace-nowrap">Stock: {d.stock_pb_actual}</span>
+                <div className="flex items-center gap-2">
+                   <button 
+                     onClick={() => handleWhatsApp(d, 'PB')}
+                     className="opacity-0 group-hover:opacity-100 p-1.5 bg-emerald-500 text-white rounded-lg transition-all"
+                   >
+                     <MessageCircle size={14} />
+                   </button>
+                   <span className="text-orange-700 font-bold px-2 py-0.5 bg-white rounded text-xs whitespace-nowrap">Stock: {d.stock_pb_actual}</span>
+                </div>
               </div>
             )) : <p className="text-center text-gray-400 py-10 text-xs font-bold uppercase tracking-widest">Sin faltantes en PB</p>}
           </div>
@@ -140,9 +163,17 @@ export const Dashboard = ({ doctors, stats, onNavigate, onPrepareDraft }: any) =
           <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><span className="w-1.5 h-5 bg-red-500 rounded-full"></span> Faltantes Depósito</h4>
           <div className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
             {faltantesDep.length > 0 ? faltantesDep.map((d: any) => (
-              <div key={d.id} className="flex justify-between items-center p-2.5 bg-red-50 rounded-xl border border-red-100 text-sm">
+              <div key={d.id} className="group flex justify-between items-center p-2.5 bg-red-50 rounded-xl border border-red-100 text-sm">
                 <span className="font-bold text-gray-700 truncate mr-2 uppercase text-xs">{d.nombre}</span>
-                <span className="text-red-700 font-bold px-2 py-0.5 bg-white rounded text-xs whitespace-nowrap">Stock: {d.stock_deposito_actual}</span>
+                <div className="flex items-center gap-2">
+                   <button 
+                     onClick={() => handleWhatsApp(d, 'DEP')}
+                     className="opacity-0 group-hover:opacity-100 p-1.5 bg-emerald-500 text-white rounded-lg transition-all"
+                   >
+                     <MessageCircle size={14} />
+                   </button>
+                   <span className="text-red-700 font-bold px-2 py-0.5 bg-white rounded text-xs whitespace-nowrap">Stock: {d.stock_deposito_actual}</span>
+                </div>
               </div>
             )) : <p className="text-center text-gray-400 py-10 text-xs font-bold uppercase tracking-widest">Depósito abastecido</p>}
           </div>
