@@ -14,11 +14,13 @@ import {
   ShieldAlert, 
   Activity,
   Heart,
-  Wifi
+  Wifi,
+  Menu as MenuIcon
 } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activePage, setActivePage] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [doctors, setDoctors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -159,21 +161,26 @@ const App: React.FC = () => {
   const sharedProps = {
     currentUser: { name: 'Admin Arévalo', role: 'ADMIN' },
     activePage,
-    onNavigate: setActivePage,
+    onNavigate: (page: string) => {
+      setActivePage(page);
+      setIsSidebarOpen(false); // Cierra el menú al navegar en móviles
+    },
     doctors,
     setDoctors,
     stats,
     onBatchTransfer: handleBatchTransfer,
     onDistribute: handleDistribute,
     onReceiveOrder: handleReceiveOrder,
-    onPrepareDraft: (items: any[]) => { setDraftTransfers(items); setActivePage('movements'); },
-    onPrepareOrder: (items: any[]) => { setDraftOrder(items); setActivePage('orders'); },
+    onPrepareDraft: (items: any[]) => { setDraftTransfers(items); setActivePage('movements'); setIsSidebarOpen(false); },
+    onPrepareOrder: (items: any[]) => { setDraftOrder(items); setActivePage('orders'); setIsSidebarOpen(false); },
     onAddDoctor: (d: any) => { const n = [...doctors, {...d, id: Date.now().toString()}]; setDoctors(n); syncWithSheet(n); },
     onUpdateDoctor: (d: any) => { const n = doctors.map(x => x.id === d.id ? d : x); setDoctors(n); syncWithSheet(n); },
     draftTransfers: draftTransfers,
     onClearDraft: () => setDraftTransfers([]),
     draftOrder: draftOrder,
-    onClearOrderDraft: () => setDraftOrder([])
+    onClearOrderDraft: () => setDraftOrder([]),
+    isSidebarOpen,
+    onToggleSidebar: () => setIsSidebarOpen(!isSidebarOpen)
   };
 
   return (
@@ -197,38 +204,46 @@ const App: React.FC = () => {
           )}
         </div>
 
-        {/* Toolbar */}
-        <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl px-10 py-8 flex justify-between items-center border-b border-gray-50 no-print">
-          <div className="flex items-center gap-4">
-             <div className="bg-slate-950 text-white p-3 rounded-2xl shadow-lg shadow-slate-200">
-                <Activity size={22} className={netPulses % 2 === 0 ? 'opacity-100 scale-110 transition-transform' : 'opacity-30 scale-100 transition-transform'} />
+        {/* Toolbar responsive */}
+        <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl px-4 md:px-10 py-4 md:py-8 flex justify-between items-center border-b border-gray-50 no-print">
+          <div className="flex items-center gap-3 md:gap-4">
+             {/* Botón Hamburguesa para celular */}
+             <button 
+               onClick={() => setIsSidebarOpen(true)}
+               className="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+             >
+               <MenuIcon size={24} />
+             </button>
+             
+             <div className="bg-slate-950 text-white p-2 md:p-3 rounded-xl md:rounded-2xl shadow-lg shadow-slate-200">
+                <Activity size={18} className={netPulses % 2 === 0 ? 'opacity-100 scale-110 transition-transform' : 'opacity-30 scale-100 transition-transform'} />
              </div>
              <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase leading-none">{activePage}</h2>
-                <span className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em] mt-1 block">Online • Latido: {netPulses}p</span>
+                <h2 className="text-lg md:text-2xl font-black text-slate-900 tracking-tighter uppercase leading-none">{activePage}</h2>
+                <span className="text-[8px] md:text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em] mt-1 block">Online • {netPulses}p</span>
              </div>
           </div>
           <button 
             onClick={() => loadData(true)} 
-            className="group bg-white border border-slate-100 shadow-sm px-6 py-3 rounded-2xl text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all active:scale-95 flex items-center gap-3"
+            className="group bg-white border border-slate-100 shadow-sm px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl text-slate-400 hover:text-blue-600 transition-all flex items-center gap-2"
           >
-            <RefreshCw size={18} className={loading ? "animate-spin text-blue-600" : "group-hover:rotate-180 transition-transform duration-700"} />
-            <span className="text-[10px] font-black uppercase tracking-tighter">Forzar Sincronía</span>
+            <RefreshCw size={16} className={loading ? "animate-spin text-blue-600" : ""} />
+            <span className="hidden sm:inline text-[10px] font-black uppercase tracking-tighter">Sincronizar</span>
           </button>
         </div>
 
         {doctors.length === 0 && !loading && (
-          <div className="p-12 h-[80vh] flex items-center justify-center">
-            <div className="bg-white border border-red-50 p-20 rounded-[60px] shadow-2xl text-center max-w-xl">
-              <ShieldAlert size={80} className="mx-auto mb-10 text-red-500" />
-              <h3 className="text-3xl font-black text-slate-900 mb-6 tracking-tighter">Conexión Interrumpida</h3>
-              <p className="text-slate-500 mb-10 leading-relaxed font-medium">No se detectó la respuesta de Google Sheets. Esto puede ser por falta de internet o error en el Apps Script.</p>
-              <button onClick={() => loadData(true)} className="w-full bg-slate-950 text-white py-6 rounded-3xl font-black text-xs uppercase tracking-[0.3em] shadow-xl hover:bg-blue-600 transition-all">Reintentar</button>
+          <div className="p-4 md:p-12 h-[80vh] flex items-center justify-center">
+            <div className="bg-white border border-red-50 p-8 md:p-20 rounded-[40px] md:rounded-[60px] shadow-2xl text-center max-w-xl">
+              <ShieldAlert size={60} className="mx-auto mb-8 text-red-500" />
+              <h3 className="text-xl md:text-3xl font-black text-slate-900 mb-4 tracking-tighter">Conexión Interrumpida</h3>
+              <p className="text-slate-500 mb-8 text-sm md:text-base leading-relaxed font-medium">No se detectó la respuesta de Google Sheets. Revisa tu internet.</p>
+              <button onClick={() => loadData(true)} className="w-full bg-slate-950 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-[0.3em]">Reintentar</button>
             </div>
           </div>
         )}
 
-        <div className="pb-32 px-10">
+        <div className="pb-32 px-4 md:px-10">
           {activePage === 'dashboard' && doctors.length > 0 && <Dashboard {...sharedProps} />}
           {activePage === 'distribution' && doctors.length > 0 && <Distribution {...sharedProps} />}
           {activePage === 'movements' && doctors.length > 0 && <Movements {...sharedProps} />}
@@ -237,21 +252,16 @@ const App: React.FC = () => {
           {activePage === 'admin' && <AdminPanel {...sharedProps} />}
         </div>
 
-        {/* Global Footer Monitor */}
-        <div className="fixed bottom-0 right-0 left-0 md:left-64 bg-slate-950 text-white/30 p-4 px-12 flex justify-between items-center z-50 border-t border-white/5 no-print">
-          <div className="flex items-center gap-6">
+        {/* Global Footer Monitor responsive */}
+        <div className="fixed bottom-0 right-0 left-0 md:left-64 bg-slate-950 text-white/30 p-4 px-6 md:px-12 flex justify-between items-center z-50 border-t border-white/5 no-print">
+          <div className="flex items-center gap-4 md:gap-6">
             <div className="flex items-center gap-2">
-              <Wifi size={12} className="text-blue-500" />
-              <span className="text-[9px] font-black uppercase tracking-widest">Protocolo: G-SHEETS-V2</span>
-            </div>
-            <div className="h-4 w-px bg-white/5"></div>
-            <div className="flex items-center gap-2">
-              <Heart size={12} className="text-rose-500" />
-              <span className="text-[9px] font-black uppercase tracking-widest">Pulso: {syncTime}</span>
+              <Wifi size={10} className="text-blue-500" />
+              <span className="text-[8px] font-black uppercase tracking-widest">G-SHEETS-V2</span>
             </div>
           </div>
           <div className="flex items-center gap-4">
-             <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/10">Centro Médico Arévalo v2.8.0</span>
+             <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/10">v2.8.0</span>
           </div>
         </div>
       </main>
